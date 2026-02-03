@@ -4,7 +4,7 @@ import { getCollection } from 'astro:content';
 const site = 'https://blog.atharvadevasthali.com';
 
 export const GET: APIRoute = async () => {
-  const categories = ['devlogs', 'articles', 'examples'] as const;
+  const categories = ['devlogs', 'articles'] as const;
 
   const allPosts = await Promise.all(
     categories.map(async (category) => {

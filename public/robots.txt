@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /examples/
 
 Sitemap: https://blog.atharvadevasthali.com/sitemap.xml
