@@ -1,8 +1,9 @@
 ---
 title: "From Google Marketing to AI Automation: My Developer Journey"
 description: "How I went from being a frontend developer at Google to building AI-powered automation systems - the gambles, the lessons, and the dream I'm living."
-pubDate: "Oct 31 2025"
+pubDate: "Nov 16 2025"
 heroImage: '@/assets/office.jpg'
+heroImageAlt: "An office desktop window side with a laptop opened alongside a big indoor plant"
 tags: ["Career", "AI", "Automation", "Journey"]
 ---
 
@@ -136,7 +137,7 @@ Now I'm a full-stack engineer who specializes in AI-powered automation. That's a
 
 If you're early in your career, thinking about switching paths, or wondering if you should take that leap, here's what I've learned: Your first job won't define your career - I started building marketing pages and now build cost-optimization systems and AI automation. Sometimes you have to leave comfort - leaving Cybage was scary, leaving India was scarier, being a broke student after earning a salary was the scariest, but none of my growth would have happened in my comfort zone.
 
-Keep learning, always. The tech stack I use today - FastAPI, n8n, modern LLMs, cloud infrastructure - literally none of it existed or I didn't know it existed when I started at Cybage in 2020. Technology moves fast, and you have to move with it. Focus on impact over titles - I could be a Senior Frontend Developer still building nice UIs, but instead I'm building systems that save $8,400 per year. Which sounds more impressive in an interview? Which actually matters more?
+Keep learning, always. The tech stack I use today - FastAPI, n8n, modern LLMs, cloud infrastructure - literally none of it existed or I didn't know it existed when I started at Cybage in 2020. Technology moves fast, and you have to move with it. Focus on impact over titles - I could be a Senior Software Engineer still building nice UIs, but instead I'm building systems that could save $8,400 per year. Which sounds more impressive in an interview? Which actually matters more?
 
 Take the gamble when it feels right. Not every gamble pays off, but the gambles you don't take are guaranteed to return nothing. I gambled on grad school, and it paid off. You won't know until you try. And document your journey - I wish I'd started writing these articles earlier. Documenting what you're learning, building, and struggling with is valuable for you and for others following similar paths.
 
@@ -146,7 +147,7 @@ This story isn't over. I'm 26 with decades of building ahead of me. There are st
 
 What I do know is this: I'm no longer the confused college grad trying to choose between two job offers. I'm not the frontend developer wondering if there's more to tech than pretty UIs. I'm not the grad student questioning if leaving a good job was a mistake. I'm someone who builds systems that matter, someone who takes complex problems and finds elegant solutions, someone who's still learning, still growing, still pushing.
 
-The journey from Google marketing properties to AI automation wasn't linear. It was messy, uncertain, sometimes scary.
+The journey from Google marketing projects to AI automation wasn't linear. It was messy, uncertain, sometimes scary.
 
 But I wouldn't change a thing.
 

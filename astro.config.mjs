@@ -19,5 +19,10 @@ export default defineConfig({
         "@": path.resolve("./src"),
       },
     },
+    server: {
+      watch: {
+        ignored: ['**/.vercel/**'],
+      },
+    },
   },
 });

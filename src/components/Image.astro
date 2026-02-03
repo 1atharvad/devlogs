@@ -1,0 +1,61 @@
+---
+import { Image as ImageBase } from './Image.tsx';
+import { getResponsiveImage } from '@/lib/image';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  src: string | ImageMetadata;
+  alt: string;
+  class?: string;
+  wrapperClass?: string;
+  widths?: number[];
+  sizes?: string;
+  lazyload?: boolean;
+  decoding?: 'async' | 'sync' | 'auto';
+  fetchPriority?: 'high' | 'low' | 'auto';
+  caption?: string;
+}
+
+const {
+  src,
+  alt,
+  class: className,
+  wrapperClass,
+  widths = [400, 600, 800, 1200],
+  sizes,
+  lazyload = true,
+  decoding = 'async',
+  fetchPriority,
+  caption,
+} = Astro.props;
+
+let imgSrc: string;
+let srcSet: string | undefined;
+let imgWidth: number | undefined;
+let imgHeight: number | undefined;
+
+if (typeof src === 'object' && 'width' in src) {
+  const imageData = await getResponsiveImage(src, { widths });
+  imgSrc = imageData.src;
+  srcSet = imageData.srcSet;
+  imgWidth = imageData.width;
+  imgHeight = imageData.height;
+} else {
+  imgSrc = src as string;
+}
+---
+
+<ImageBase
+  client:load
+  src={imgSrc}
+  srcSet={srcSet}
+  alt={alt}
+  className={className}
+  wrapperClassName={wrapperClass}
+  sizes={sizes}
+  width={imgWidth}
+  height={imgHeight}
+  lazyload={lazyload}
+  decoding={decoding}
+  fetchPriority={fetchPriority}
+/>

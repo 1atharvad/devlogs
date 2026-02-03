@@ -77,7 +77,7 @@ export const Header = ({ variant = 'default', className = '' }: HeaderProps) => 
         <nav className='flex items-center align-middle justify-between'>
           <h2 className='font-slackey m-0 text-2xl w-fit'>
             <a className='text-orange-200 text-shadow-soft' href='/'>
-              {SITE_TITLE}
+              <span className='text-[#fdb55e]'>AD</span>evLogs
             </a>
           </h2>
         </nav>

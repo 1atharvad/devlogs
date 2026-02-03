@@ -1,6 +1,4 @@
-import { useRef } from 'react';
-import { Image } from '@/components/Image';
-import bannerImage from '@/assets/banner-img.jpg';
+import { useRef, type ReactNode } from 'react';
 
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -8,7 +6,11 @@ import ScrollTrigger from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
-export const Banner = () => {
+interface BannerProps {
+  children: ReactNode;
+}
+
+export const Banner = ({ children }: BannerProps) => {
   const boxRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
@@ -47,9 +49,9 @@ export const Banner = () => {
 
   return (
     <section ref={boxRef} className="relative overflow-hidden left-1/2 -translate-x-1/2 h-[90vh] before:content-[''] before:absolute before:inset-0 before:bg-black/50 before:z-10">
-      <Image wrapperClassName="absolute inset-0 w-full h-full rounded-none object-cover"
-          src={bannerImage}
-          alt="" />
+      <div className="absolute w-full h-full">
+        {children}
+      </div>
       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center text-white px-4">
         <h1 className="font-stack text-5xl md:text-8xl/tight font-bold mb-4 text-white">
           Building Things, Breaking Things, Learning Fast

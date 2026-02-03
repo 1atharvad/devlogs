@@ -3,7 +3,7 @@ import { getCollection, render } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Footer from '@/components/Footer.astro';
 import FormattedDate from '@/components/FormattedDate.astro';
-import { Image } from '@/components/Image';
+import Image from '@/components/Image.astro';
 import "@/styles/layouts/blog-post.scss"
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import { Header } from '@/components/Header';
@@ -66,8 +66,16 @@ const { Content } = await render(post);
 				<h1 class="text-4xl lg:text-5xl font-rajdhani font-bold">
 					{post.data.title}
 				</h1>
-				<div class="text-lg text-zinc-600 mt-7 lg:mt-10 font-rubik">
-					Posted on <FormattedDate class='text-orange-700' date={post.data.pubDate} />
+				<div class="inline-flex items-center gap-3 text-lg text-zinc-600 mt-7 lg:mt-10 font-rubik">
+					<span>
+						Posted on <FormattedDate class='text-orange-700' date={post.data.pubDate} />
+					</span>
+					{post.data.updatedDate && (
+						<span class="bg-transparent border-2 border-orange-600 rounded-full flex-none h-2 w-2" />
+						<span>
+							Updated on <FormattedDate class='text-orange-700' date={post.data.updatedDate} />
+						</span>
+					)}
 				</div>
 				<p class="text-lg leading-8 mt-4 lg:mt-7 text-zinc-500 font-rubik">
 					{post.data.description}
@@ -75,9 +83,9 @@ const { Content } = await render(post);
 			</div>
 			<div class="w-full mb-6">
 				{post.data.heroImage && (
-					<Image className="rounded-2xl"
+					<Image class="rounded-2xl"
 							src={post.data.heroImage}
-							alt="" />
+							alt={post.data.heroImageAlt ?? ''} />
 				)}
 			</div>
 			<article class="blog-content">

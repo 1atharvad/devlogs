@@ -8,6 +8,7 @@ const postSchema = ({ image }: SchemaContext) =>
 		pubDate: z.coerce.date(),
 		updatedDate: z.coerce.date().optional(),
 		heroImage: image().optional(),
+		heroImageAlt: z.string().optional(),
 		examplePage: z.boolean().default(false),
 		draft: z.boolean().default(false),
 		tags: z.array(z.string()).default([]),
