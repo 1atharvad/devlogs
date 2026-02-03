@@ -19,9 +19,9 @@ export const getResponsiveImage = async (
   options: ResponsiveImageOptions = {}
 ): Promise<ResponsiveImageResult> => {
   const {
-    widths = [640, 960, 1280, 1920],
+    widths = [640, 828, 1080, 1440, 1920],
     format = 'webp',
-    quality = 80,
+    quality = 72,
   } = options;
 
   const validWidths = widths.filter(w => w <= image.width);
