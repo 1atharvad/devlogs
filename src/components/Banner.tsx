@@ -1,16 +1,14 @@
 import { useRef, type ReactNode } from 'react';
 
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
-import ScrollTrigger from 'gsap/ScrollTrigger';
-
-gsap.registerPlugin(useGSAP, ScrollTrigger);
+import { gsap, useGSAP, ScrollTrigger } from '@/lib/gsap';
 
 interface BannerProps {
   children: ReactNode;
+  headline: string;
+  tagline: string;
 }
 
-export const Banner = ({ children }: BannerProps) => {
+export const Banner = ({ children, headline, tagline }: BannerProps) => {
   const boxRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
@@ -19,15 +17,15 @@ export const Banner = ({ children }: BannerProps) => {
       const timeline = gsap.timeline({
         scrollTrigger: {
           trigger: boxRef.current,
-          start: "top top",
-          end: "bottom top+=50%",
+          start: 'top top',
+          end: 'bottom top+=50%',
           scrub: true,
         },
       });
 
       timeline.to(boxRef.current, {
-        borderRadius: "0.5rem",
-        width: "90vw",
+        borderRadius: '0.5rem',
+        width: '90vw',
       });
     };
 
@@ -39,10 +37,10 @@ export const Banner = ({ children }: BannerProps) => {
       ctx = gsap.context(createTimeline, boxRef);
     };
 
-    window.addEventListener("resize", handleResize);
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener('resize', handleResize);
       ctx.revert();
     };
   }, { scope: boxRef });
@@ -54,10 +52,10 @@ export const Banner = ({ children }: BannerProps) => {
       </div>
       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center text-white px-4">
         <h1 className="font-stack text-5xl md:text-8xl/tight font-bold mb-4 text-white">
-          Building Things, Breaking Things, Learning Fast
+          {headline}
         </h1>
         <p className="font-rubik text-lg md:text-xl max-w-2xl text-white/90">
-          Lessons from full-stack development, DevOps experiments, and side projects.
+          {tagline}
         </p>
       </div>
     </section>

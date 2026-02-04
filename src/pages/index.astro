@@ -1,14 +1,17 @@
 ---
+import { ArrowRightIcon } from '@heroicons/react/24/solid';
+
+import { Banner } from '@/components/Banner';
+import Card from '@/components/Card.astro';
 import Footer from '@/components/Footer.astro';
 import { Header } from '@/components/Header';
-import { Banner } from '@/components/Banner';
-import bannerImage from '@/assets/banner-img.jpg';
-import { SITE_DESCRIPTION, SITE_TITLE } from '@/consts';
-import Card from '@/components/Card.astro';
-import BaseLayout from '@/layouts/BaseLayout.astro';
 import Image from '@/components/Image.astro';
-import { ArrowRightIcon } from '@heroicons/react/24/solid';
+import labels from '@/content/labels.json';
+import siteData from '@/content/site.json';
+import BaseLayout from '@/layouts/BaseLayout.astro';
 import { categories, getCategoryPosts, getCategoryKeys } from '@/lib/categories';
+
+import bannerImage from '@/assets/banner-img.jpg';
 
 const postSections = await Promise.all(
 	getCategoryKeys()
@@ -22,11 +25,11 @@ const postSections = await Promise.all(
 ---
 
 <BaseLayout
-		title={SITE_TITLE}
-		description={SITE_DESCRIPTION}
+		title={siteData.title}
+		description={siteData.description}
 		bodyClassName='bg-[linear-gradient(225deg,#deffbc70_30%,#ffdebf7d_70%)]'>
 	<Header variant='animating' client:load />
-	<Banner client:load>
+	<Banner headline={siteData.banner.headline} tagline={siteData.banner.tagline} client:load>
 		<Image
 			src={bannerImage}
 			alt="Banner background"
@@ -40,7 +43,7 @@ const postSections = await Promise.all(
 	</Banner>
 	<main class="max-w-[90vw] mx-auto mb-[5vh]">
 		<h2 class="font-rajdhani font-semibold text-3xl/normal md:text-4xl/normal lg:text-5xl/normal text-zinc-800 mt-[6vh] md:mt-[9vh] mb-[9vh] md:mb-[12vh]">
-			Welcome, I'm Atharva 🙂 This is where I document what I'm learning while building real-world software.
+			{siteData.home.welcome}
 		</h2>
 		<section>
 			{postSections.map(section =>
@@ -50,7 +53,7 @@ const postSections = await Promise.all(
 							{section.title}
 						</h3>
 						<a class="inline-flex items-center text-orange-600 hover:underline" href={section.link}>
-							View All
+							{labels.navigation.viewAll}
 							<ArrowRightIcon className="w-4 h-4 ml-2" />
 						</a>
 					</div>

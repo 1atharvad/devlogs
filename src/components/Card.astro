@@ -1,7 +1,8 @@
 ---
-import Image from '@/components/Image.astro';
-import FormattedDate from '@/components/FormattedDate.astro';
 import type { ImageMetadata } from 'astro';
+
+import FormattedDate from '@/components/FormattedDate.astro';
+import Image from '@/components/Image.astro';
 
 interface Props {
   id: string;
@@ -18,7 +19,7 @@ interface Props {
 const { id, post, link } = Astro.props;
 ---
 
-<a href={`${link}/${id}`} class="js-post-card bg-slate-400/[.1] p-4 rounded-2xl block" data-tags={post.tags?.join(",") || ""}>
+<a href={`${link}/${id}`} class="js-post-card bg-slate-400/[.1] p-4 rounded-2xl block" data-tags={post.tags?.join(',') || ''}>
   {post.heroImage && (
     <div class="relative">
       <Image

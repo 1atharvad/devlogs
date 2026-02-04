@@ -1,7 +1,9 @@
 ---
-import { Image as ImageBase } from './Image.tsx';
-import { getResponsiveImage } from '@/lib/image';
 import type { ImageMetadata } from 'astro';
+
+import { getResponsiveImage } from '@/lib/image';
+
+import { Image as ImageBase } from './Image.tsx';
 
 interface Props {
   src: string | ImageMetadata;

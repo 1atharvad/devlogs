@@ -29,6 +29,7 @@ export const GET: APIRoute = async () => {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${allUrls.map(({ url, lastmod }) => `  <url>
     <loc>${url}</loc>
+    <lastmod>${lastmod}</lastmod>
   </url>`).join('\n')}
 </urlset>`;
 

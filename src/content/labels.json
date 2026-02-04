@@ -1,0 +1,14 @@
+{
+  "badges": {
+    "draft": "Draft",
+    "example": "Example"
+  },
+  "dates": {
+    "postedOn": "Posted on",
+    "updatedOn": "Updated on"
+  },
+  "navigation": {
+    "home": "Home",
+    "viewAll": "View All"
+  }
+}

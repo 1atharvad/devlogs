@@ -1,7 +1,9 @@
 ---
+import siteData from '@/content/site.json';
+
 const today = new Date();
 ---
 
 <footer class="bg-[#0F0F10] text-orange-200 font-rubik py-8 px-4 pb-24 text-center">
-	&copy; {today.getFullYear()} Atharva Devasthali. All rights reserved.
+	&copy; {today.getFullYear()} {siteData.author}. All rights reserved.
 </footer>

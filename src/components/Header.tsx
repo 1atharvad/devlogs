@@ -1,14 +1,10 @@
-import { cva, type VariantProps } from 'class-variance-authority';
-import { twMerge } from 'tailwind-merge';
-import clsx from 'clsx';
-import { SITE_TITLE } from '@/consts';
-
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
-import ScrollTrigger from 'gsap/ScrollTrigger';
 import { useRef } from 'react';
 
-gsap.registerPlugin(useGSAP, ScrollTrigger);
+import { cva, type VariantProps } from 'class-variance-authority';
+import clsx from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+import { gsap, useGSAP, ScrollTrigger } from '@/lib/gsap';
 
 const headerVariants = cva(
   'fixed w-full z-[99999] m-0 px-4 flex min-h-16 shadow-soft',
@@ -29,7 +25,7 @@ type HeaderVariants = VariantProps<typeof headerVariants>;
 
 type HeaderProps = HeaderVariants & {
   className?: string;
-}
+};
 
 export const Header = ({ variant = 'default', className = '' }: HeaderProps) => {
   const boxRef = useRef<HTMLDivElement>(null);

@@ -1,12 +1,14 @@
 ---
+import { ArrowLeftIcon } from '@heroicons/react/24/solid';
+
+import Card from '@/components/Card.astro';
 import Footer from '@/components/Footer.astro';
 import { Header } from '@/components/Header';
-import { SITE_DESCRIPTION, SITE_TITLE } from '@/consts';
-import Card from '@/components/Card.astro';
-import BaseLayout from '@/layouts/BaseLayout.astro';
 import { TagFilter } from '@/components/TagFilter';
+import labels from '@/content/labels.json';
+import siteData from '@/content/site.json';
+import BaseLayout from '@/layouts/BaseLayout.astro';
 import { categories, getCategoryPosts, getCategoryKeys, type CategoryKey } from '@/lib/categories';
-import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 
 export async function getStaticPaths() {
 	const categoryKeys = getCategoryKeys();
@@ -18,19 +20,19 @@ export async function getStaticPaths() {
 const { category } = Astro.params as { category: CategoryKey };
 const config = categories[category];
 const posts = await getCategoryPosts(category);
-const tags = ["All", ...new Set(posts.flatMap(post => post.data.tags))].filter(Boolean) as string[];
+const tags = ['All', ...new Set(posts.flatMap(post => post.data.tags))].filter(Boolean) as string[];
 ---
 
 <BaseLayout
-		title={SITE_TITLE}
-		description={SITE_DESCRIPTION}
+		title={siteData.title}
+		description={siteData.description}
 		bodyClassName='bg-[linear-gradient(225deg,#deffbc70_30%,#ffdebf7d_70%)]'>
 	<Header client:load />
 	<main class="max-w-[90vw] min-h-[calc(100vh-216px)] mx-auto pb-[5vh]">
 		<TagFilter tags={tags} client:load />
 		<a href="/" class="inline-flex items-center min-h-[38px] font-rubik text-sm text-gray-600 pt-[6vh] mb-4 hover:underline">
 			<ArrowLeftIcon className="w-4 h-4 mr-2" />
-			Home
+			{labels.navigation.home}
 		</a>
 		<section>
 			<h3 class="font-rubik text-3xl pb-6">

@@ -1,62 +1,43 @@
+<div align="center">
+
 # ADevLogs
 
-A personal tech blog built with Astro, React, and Tailwind CSS.
+### Building Things, Breaking Things, Learning Fast
 
-## Tech Stack
+---
 
-- **Framework**: [Astro](https://astro.build/) v5
-- **UI Components**: React 19
-- **Styling**: Tailwind CSS + SCSS
-- **Animations**: GSAP
-- **Content**: MDX for rich blog posts
-- **Features**: RSS feed, Sitemap, Category-based organization
+*Lessons from full-stack development, DevOps experiments, and side projects.*
 
-## Getting Started
+</div>
 
-### Prerequisites
+## About
 
-- Node.js 18+
-- npm or pnpm
+Hey, I'm **Atharva Devasthali** — a developer who learns by doing.
 
-### Installation
+ADevLogs is where I document what I discover while building real-world software. From debugging production issues at 2 AM to experimenting with new frameworks on weekends, this space captures the raw, unfiltered journey of a developer constantly pushing boundaries.
 
-```bash
-npm install
-```
+## What You'll Find Here
 
-### Development
+**Dev Logs** — Deep dives into problems I've solved, architectural decisions I've made, and lessons learned the hard way.
 
-```bash
-npm run dev
-```
+**Articles** — Polished pieces on topics I've explored thoroughly — tutorials, guides, and technical breakdowns.
 
-The site will be available at `http://localhost:4321`
+**Projects** — Behind-the-scenes looks at side projects and experiments.
 
-### Build
+## Philosophy
 
-```bash
-npm run build
-```
+I believe the best learning happens when you're building something real. Every bug is a lesson. Every failed deployment is a story. Every refactor teaches you something about your past self.
 
-### Preview Production Build
+This isn't about perfection — it's about progress.
 
-```bash
-npm run preview
-```
+## Stay Connected
 
-## Project Structure
+Subscribe to the [RSS Feed](https://blog.atharvadevasthali.com/rss.xml) to get new posts delivered directly.
 
-```
-src/
-├── assets/          # Images and static assets
-├── components/      # Astro and React components
-├── content/         # Blog posts and articles (MDX/MD)
-├── layouts/         # Page layouts
-├── lib/             # Utility functions
-├── pages/           # Astro pages and routes
-└── styles/          # Global and component styles
-```
+---
 
-## License
+<div align="center">
 
-All rights reserved.
+**Made with curiosity and caffeine**
+
+</div>

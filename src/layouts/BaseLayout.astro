@@ -1,22 +1,24 @@
 ---
 import '@/styles/global.scss';
+
+import { buildGoogleFontsUrl, type FontConfig } from '@/lib/fontManager';
+
 import FallbackImage from '@/assets/example/blog-placeholder-1.jpg';
-import { SITE_TITLE } from '@/consts';
-import { buildGoogleFontsUrl, type FontConfig } from "@/lib/fontManager";
+import siteData from '@/content/site.json';
 
 interface Props {
 	title: string;
 	description: string;
-  bodyClassName?: string;
+	bodyClassName?: string;
 	image?: ImageMetadata;
 }
 
 const fonts: FontConfig[] = [
-	{name: "Rajdhani", weights: [300, 400, 500, 600, 700]},
-  {name: "Rubik", weights: "300..900"},
-  {name: "Slackey"},
-  {name: "Stack Sans Notch", weights: "200..700"},
-]
+	{ name: 'Rajdhani', weights: [300, 400, 500, 600, 700] },
+	{ name: 'Rubik', weights: '300..900' },
+	{ name: 'Slackey' },
+	{ name: 'Stack Sans Notch', weights: '200..700' },
+];
 const fontUrl = buildGoogleFontsUrl(fonts);
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
@@ -27,7 +29,7 @@ const { title, description, bodyClassName, image = FallbackImage } = Astro.props
 <!doctype html>
 <html lang="en">
 	<head>
-		<meta charset="utf-8">
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -37,7 +39,7 @@ const { title, description, bodyClassName, image = FallbackImage } = Astro.props
     <link rel="sitemap" href="/sitemap-index.xml">
     <link rel="alternate"
         type="application/rss+xml"
-        title={SITE_TITLE}
+        title={siteData.title}
         href={new URL('rss.xml', Astro.site)}>
     <meta name="generator" content={Astro.generator}>
 

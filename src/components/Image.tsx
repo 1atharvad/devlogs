@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
-import "@/styles/components/image.scss";
+
+import '@/styles/components/image.scss';
 
 type ImageSrc = string | { src: string; width?: number; height?: number };
 

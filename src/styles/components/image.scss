@@ -1,20 +1,20 @@
 .image {
   &-wrapper {
-    @apply grid;
+    grid: 'image-sizer';
 
-    grid: "image-sizer";
+    @apply grid;
   }
 
   &-sizer {
-    @apply h-0;
-
     grid-area: image-sizer;
     padding-bottom: var(--default-height, 100%);
+
+    @apply h-0;
   }
 
   &-frame {
-    @apply h-full object-cover;
-
     grid-area: image-sizer;
+
+    @apply h-full object-cover;
   }
 }

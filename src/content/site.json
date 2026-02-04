@@ -1,0 +1,12 @@
+{
+  "title": "ADevLogs",
+  "description": "Lessons from full-stack development, DevOps experiments, and side projects.",
+  "author": "Atharva Devasthali",
+  "banner": {
+    "headline": "Building Things, Breaking Things, Learning Fast",
+    "tagline": "Lessons from full-stack development, DevOps experiments, and side projects."
+  },
+  "home": {
+    "welcome": "Welcome, I'm Atharva 🙂 This is where I document what I'm learning while building real-world software."
+  }
+}
