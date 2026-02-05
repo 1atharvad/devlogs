@@ -11,6 +11,7 @@ const postSchema = ({ image }: SchemaContext) =>
 		heroImageAlt: z.string().optional(),
 		examplePage: z.boolean().default(false),
 		draft: z.boolean().default(false),
+		primaryTag: z.string().optional(),
 		tags: z.array(z.string()).default([]),
 	});
 

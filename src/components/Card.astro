@@ -11,15 +11,17 @@ interface Props {
     description: string;
     pubDate: Date;
     heroImage?: ImageMetadata;
+    primaryTag?: string;
     tags?: string[];
   };
   link: string;
 }
 
 const { id, post, link } = Astro.props;
+const allTags = [post.primaryTag, ...(post.tags || [])].filter(Boolean) as string[];
 ---
 
-<a href={`${link}/${id}`} class="js-post-card bg-slate-400/[.1] p-4 rounded-2xl block" data-tags={post.tags?.join(',') || ''}>
+<a href={`${link}/${id}`} class="js-post-card bg-slate-400/[.1] p-4 rounded-2xl block" data-primary-tag={post.primaryTag || ''}>
   {post.heroImage && (
     <div class="relative">
       <Image
@@ -35,9 +37,9 @@ const { id, post, link } = Astro.props;
       />
     </div>
   )}
-  {post.tags && post.tags.length > 0 && (
+  {allTags.length > 0 && (
     <div class="flex flex-wrap gap-1.5 mt-4">
-      {post.tags.map((tag) => (
+      {allTags.map((tag) => (
         <span class="inline-flex items-center rounded-full font-rubik uppercase bg-zinc-300/50 px-2.5 py-1 text-xs font-medium text-zinc-600">
           {tag}
         </span>

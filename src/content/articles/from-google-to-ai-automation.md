@@ -4,7 +4,8 @@ description: "How I went from being a frontend developer at Google to building A
 pubDate: "Nov 16 2025"
 heroImage: '@/assets/office.jpg'
 heroImageAlt: "An office desktop window side with a laptop opened alongside a big indoor plant"
-tags: ["Career", "AI", "Automation", "Journey"]
+primaryTag: "Career"
+tags: ["AI", "Automation", "Journey"]
 ---
 
 I've been thinking a lot lately about how I got here - building AI automation systems, optimizing cloud costs, working with technologies I didn't even know existed four years ago. The path from fresh graduate to where I am now wasn't linear, and honestly, it wasn't what I planned either. But looking back, every detour made sense.

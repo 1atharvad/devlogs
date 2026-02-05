@@ -12,8 +12,8 @@ export const TagFilter = ({ tags }: Props) => {
 
     const cards = document.querySelectorAll('.js-post-card');
     cards.forEach((card) => {
-      const cardTags = card.getAttribute('data-tags')?.split(',') || [];
-      if (tag === 'All' || cardTags.includes(tag)) {
+      const primaryTag = card.getAttribute('data-primary-tag') || '';
+      if (tag === 'All' || primaryTag === tag) {
         (card as HTMLElement).style.display = '';
       } else {
         (card as HTMLElement).style.display = 'none';

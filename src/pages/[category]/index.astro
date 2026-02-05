@@ -20,7 +20,7 @@ export async function getStaticPaths() {
 const { category } = Astro.params as { category: CategoryKey };
 const config = categories[category];
 const posts = await getCategoryPosts(category);
-const tags = ['All', ...new Set(posts.flatMap(post => post.data.tags))].filter(Boolean) as string[];
+const tags = ['All', ...new Set(posts.map(post => post.data.primaryTag).filter(Boolean))] as string[];
 ---
 
 <BaseLayout

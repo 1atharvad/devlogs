@@ -19,7 +19,7 @@ const postSections = await Promise.all(
 		.map(async (key) => ({
 			title: `Recent ${categories[key].label}`,
 			link: `/${key}`,
-			posts: (await getCategoryPosts(key)).slice(0, 6),
+			posts: (await getCategoryPosts(key)).slice(0, 3),
 		}))
 );
 ---

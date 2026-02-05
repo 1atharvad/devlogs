@@ -34,6 +34,7 @@ export async function getStaticPaths() {
 const { post, category } = Astro.props;
 const config = categories[category as CategoryKey];
 const { Content } = await render(post);
+const allTags = [post.data.primaryTag, ...(post.data.tags || [])].filter(Boolean) as string[];
 ---
 
 <BaseLayout title={post.data.title} description={post.data.description}>
@@ -45,8 +46,8 @@ const { Content } = await render(post);
 				{config.label}
 			</a>
 			<div class="mb-8 leading-none md:mx-10">
-				{(post.data.draft || post.data.examplePage || (post.data.tags && post.data.tags.length > 0)) && (
-					<div class="flex gap-2 mb-7">
+				{(post.data.draft || post.data.examplePage || allTags.length > 0) && (
+					<div class="flex gap-2 mb-7 flex-wrap">
 						{post.data.draft && (
 							<span class="inline-flex items-center rounded-full font-rubik bg-amber-500 px-3 py-1.5 text-sm font-medium text-white">
 								{labels.badges.draft}
@@ -57,10 +58,10 @@ const { Content } = await render(post);
 								{labels.badges.example}
 							</span>
 						)}
-						{((post.data.draft || post.data.examplePage) && (post.data.tags && post.data.tags.length > 0)) && (
+						{((post.data.draft || post.data.examplePage) && allTags.length > 0) && (
 							<span class="border-l-2 pl-1 ml-1"></span>
 						)}
-						{post.data.tags.map((tag) => (
+						{allTags.map((tag) => (
 							<span class="inline-flex items-center font-rubik text-sm rounded-full text-orange-600 px-4 py-1.5 border border-orange-500">
 								{tag}
 							</span>

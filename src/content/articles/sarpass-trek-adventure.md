@@ -5,7 +5,8 @@ pubDate: "Feb 07 2021"
 updatedDate: "Oct 14 2025"
 heroImage: "@/assets/sar-pass-trek.png"
 heroImageAlt: "Few groups of mountaineers climbing the snow capped summit of Sar Pass"
-tags: ["Trekking", "Himalayas", "Adventure", "Life"]
+primaryTag: "Adventure"
+tags: ["Trekking", "Himalayas", "Life"]
 ---
 
 Climbing mountains and exploring new things is what I love. Amongst the many treks I completed, majority of them have been in the Himalayas, and amongst them I loved the Sar Pass Trek with YHAI (Youth Hostels Association of India) in 2010. Starting from Kasol, their base camp in Himachal Pradesh, it was a journey that tested every limit - physical, mental, and yes, even hygienic.
