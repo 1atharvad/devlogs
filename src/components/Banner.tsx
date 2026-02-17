@@ -46,7 +46,7 @@ export const Banner = ({ children, headline, tagline }: BannerProps) => {
   }, { scope: boxRef });
 
   return (
-    <section ref={boxRef} className="relative overflow-hidden left-1/2 -translate-x-1/2 h-[90vh] before:content-[''] before:absolute before:inset-0 before:bg-black/50 before:z-10">
+    <section ref={boxRef} className="relative overflow-hidden mx-auto h-[90vh] before:content-[''] before:absolute before:inset-0 before:bg-black/50 before:z-10">
       <div className="absolute w-full h-full">
         {children}
       </div>
