@@ -1,0 +1,103 @@
+---
+title: "RAG Email Agent in Production: Weekly Newsletters for 100+ Recipients"
+description: "The business application built on top of the RAG email agent — how the same architecture runs weekly personalized newsletter campaigns, routes drafts through a Telegram approval flow, tracks opens, and automates follow-ups."
+pubDate: "Feb 23 2026"
+heroImage: '@/assets/rag-email-newsletter.jpg'
+heroImageAlt: "A computer monitor showing an email compose window with a green approval checkmark in the top right corner"
+primaryTag: "Automation"
+tags: ["n8n", "RAG", "Gemini", "Gmail", "Automation"]
+---
+
+import Mermaid from '@/components/Mermaid';
+
+The [previous article](/articles/rag-email-agent-n8n) covered the technical architecture: how the RAG ingestion pipeline works, why there are two vector stores, how the agent's approval flow is structured in n8n. This article is about what that system actually does in production.
+
+The real use case is weekly outreach newsletters. Every week, personalized email drafts are generated for 100+ recipients — customers, partners, different contact segments. Each draft is grounded in current company documents: recent product updates, case studies, announcements. Each one is tailored to the recipient's industry and role.
+
+None of it sends automatically. The schedule triggers generation, not delivery. A human reviews every draft, proofreads, and explicitly approves the campaign before a single email leaves the system. The AI handles the research and writing; a person handles the judgment call.
+
+Before this system, that was a 3–4 hour weekly task. Someone would open a set of documents, extract what was relevant for each segment, write the emails, review them, send. Every week, the same cycle.
+
+The automation removes the research and drafting from that loop — not the human. What remains is review and approval, which takes under 30 minutes.
+
+<Mermaid client:load caption="Weekly campaign flow" chart={`
+flowchart LR
+    Docs["Company Docs\nPDF · DOCX · Excel"] --> VDB[("Vector Store")]
+    Excel["Recipient List\nExcel Sheet"] --> Gen["Generation\nWorkflow"]
+    VDB --> Gen
+    Gen --> Drafts["100+ Personalized\nDrafts"]
+    Drafts --> TG["Telegram\nApproval"]
+    TG -->|Approved| Gmail["Gmail API\nSend"]
+    Gmail --> Track["Open Tracking\n+ Follow-ups"]
+`} />
+
+## The Recipient List
+
+Recipients live in an Excel sheet — name, email, company, role, industry, past engagement notes, send history. The sheet is the source of truth for who gets what and what's already been sent to them.
+
+At the start of each campaign, the generation workflow reads the sheet and loops over every active recipient. For each one, it queries the vector store with a combination of the campaign topic and recipient-specific signals: their industry, role, any notes about past interactions. The top-k most semantically relevant document chunks come back as grounding context. Gemini writes from that context.
+
+The result: a retail contact gets case studies about retail deployments; a technical contact gets emails that mention API features. Not because rules were written for each case — because retrieval surfaced the right documents for each profile.
+
+A 100-recipient campaign takes roughly 5–10 minutes to generate. Every email is different.
+
+## The Approval Flow
+
+The campaign schedule triggers generation — it never triggers sending. Those are two separate steps, and only a human can authorize the second one.
+
+When generation completes, two things happen simultaneously: Gmail drafts are created for every email in the campaign, and a Telegram notification goes out to the approver with a campaign summary. The approver reads the drafts, proofreads, edits if needed, and only then authorizes the send. If they don't approve, nothing goes out — even if the scheduled time has passed.
+
+<Mermaid client:load caption="Approval flow" chart={`
+flowchart TD
+    Gen["Generation complete"] --> GD["Create Gmail drafts\nfor all recipients"]
+    Gen --> TG["Telegram notification\nto approver"]
+    TG --> Choice{"Approver\ndecision"}
+    Choice -->|"Approve All"| Send["Gmail API\nmass send"]
+    Choice -->|"Review Individual"| Inbox["Edit draft\nin Gmail"]
+    Inbox --> Choice
+    Choice -->|Reject| Cancel["Campaign\ncancelled"]
+`} />
+
+The Telegram interface has three options: Approve All, Review Individual, Reject. Approve All fires immediately — useful when the approver has already reviewed the Gmail drafts and is satisfied. Review Individual pauses for edits in Gmail, then loops back to the decision. Reject cancels the campaign without sending anything.
+
+The Gmail draft step matters. Telegram is good for authorization but poor for reviewing email formatting or editing copy. Gmail shows the email exactly as it will appear to the recipient. The approver reviews the real thing, not a summary.
+
+Average time from generation complete to approved send: under 30 minutes.
+
+## Delivery and the Follow-up Loop
+
+Once approved, the Gmail API sends each email individually — not BCC, not a mail merge. Each recipient gets an email addressed to them. Gmail read receipts track opens, and the Excel sheet gets updated after each send: delivery status, timestamp, open status.
+
+Gmail's daily sending limit is 500 emails. For larger campaigns, the system distributes sends across multiple days using a queue, tracking progress in the sheet. Nothing gets lost if a campaign spans two days.
+
+<Mermaid client:load caption="Delivery tracking and follow-up" chart={`
+flowchart TD
+    Send["Email sent"] --> Update["Update Excel\ndelivery + open status"]
+    Wait["3–5 days later"] --> Check["Query Excel\nfor unopened emails"]
+    Check -->|"Unopened found"| Followup["Generate follow-up\nvia RAG"]
+    Followup --> Approve["Telegram\napproval"]
+    Approve --> Resend["Send follow-up"]
+    Check -->|"All opened"| Done(["Campaign complete"])
+`} />
+
+After 3–5 days, a separate workflow queries the sheet for unopened emails. For those recipients, it generates a follow-up — shorter, different angle, same retrieval grounding — and queues it for the next approval cycle. The follow-up is not a resend. It's a new email generated from the same knowledge base, written to acknowledge the lack of response and offer something slightly different.
+
+This closes the loop that most outreach workflows leave open. Instead of manually tracking who didn't respond and deciding what to say next, the system handles it.
+
+## What Changed
+
+**Before:** 3–4 hours per weekly campaign. One person researching document updates, writing segment-specific emails, personalizing, reviewing, sending. Consistent weekly cadence was hard to maintain under that load.
+
+**After:** 30–45 minutes total. Define the topic, let the system generate drafts, review and approve via Telegram, automated send. The research and writing steps are gone. What remains is judgment: is this campaign ready to go?
+
+The personalization is better too. Manual emails tended toward safe, generic copy because writing 100 unique versions isn't realistic. The RAG-grounded system produces emails with specific, relevant details because retrieval picks the right source material for each recipient's context.
+
+## What I'd Add
+
+A/B testing subject lines across segments would be straightforward — generate two variants, track open rates by variant, feed results back as context for future campaigns.
+
+The follow-up timing is currently a fixed window. A smarter version would vary it based on recipient history — contacts who consistently open on specific days should receive follow-ups timed accordingly.
+
+The Excel sheet works but is fragile at scale. A proper contacts table in Postgres would handle the recipient state management more reliably and enable richer behavioral filtering during retrieval.
+
+The underlying architecture is the same as described in the [technical article](/articles/rag-email-agent-n8n). What changed is the scope of application — from a conversational single-email tool to a weekly campaign system. The ingestion pipeline, vector stores, and approval mechanics carry over directly. The campaign loop, recipient management, and delivery tracking are what this layer adds.

@@ -1,0 +1,157 @@
+---
+title: "Building a RAG-Powered Email Agent with n8n, Gemini, and Supabase"
+description: "The technical architecture behind a conversational AI agent that reads Google Drive documents, drafts personalized emails, and sends after approval — vector stores, ingestion pipeline, approval flow, and session memory."
+pubDate: "Feb 22 2026"
+heroImage: '@/assets/rag-email-robot.jpg'
+heroImageAlt: "A robot in an ancient glowing forest, taking documents from one side and sending emails from the other"
+primaryTag: "Automation"
+tags: ["n8n", "RAG", "AI Agent", "Gemini", "Supabase"]
+---
+
+import Mermaid from '@/components/Mermaid';
+
+The problem started simply enough. I needed to send personalized emails to different people and groups, and the context for each email lived in documents scattered across Google Drive — spreadsheets, Google Docs, mailing lists, reference materials. The manual process was: open the right doc, read the relevant section, write the email, send. Repeat.
+
+That's not automation. That's just a slower version of doing it yourself.
+
+What I wanted was an agent that already knew what was in those documents. One I could talk to conversationally — "draft an email to the infrastructure team about the deployment schedule" — and it would know who the infrastructure team was, what the deployment schedule said, and write something coherent. Not a template filler. An agent with context.
+
+This is what I built.
+
+<Mermaid client:load caption="System overview" chart={`
+flowchart LR
+    GDrive["Google Drive\nDocs + Sheets"] --> Ingest[Ingestion Pipeline]
+    Ingest --> VD[("documents\nvector store")]
+    Ingest --> VE[("email_list\nvector store")]
+    User(["User\nTelegram · Chat"]) --> Agent["Gemini Agent\n+ Memory"]
+    VD --> Agent
+    VE --> Agent
+    Agent --> SB[("Supabase\nemail_details")]
+    Agent --> Send["Send Email"]
+`} />
+
+## What RAG Actually Means in Practice
+
+Retrieval Augmented Generation is the pattern behind this system, but the name makes it sound more academic than it is. The practical meaning: before the AI generates a response, it searches a knowledge base for relevant information and includes that context in its prompt. The model doesn't need to have memorized your documents — it just needs to find and read them at generation time.
+
+For this use case:
+- The knowledge base is a Supabase vector store containing embeddings of everything in a specific Google Drive folder
+- When the agent needs to write an email, it retrieves the most relevant chunks from that store — project details, recipient information, mailing list data — and uses that context to write something accurate
+- The model is Gemini, running inside an n8n AI Agent node with Postgres-backed conversation memory
+
+That's the core. The rest of the system is the plumbing that makes it reliable.
+
+## The Ingestion Pipeline
+
+Before the agent can retrieve anything, the documents need to be embedded and stored. The ingestion workflow runs on demand and handles three things: what's new, what's changed, and what needs to be cleaned up.
+
+When it runs, it pulls all currently embedded documents from Supabase and all files from the Google Drive folder. It then compares them by `modifiedTime`. Files that don't exist in the vector store yet get embedded fresh. Files that do exist but have a newer `modifiedTime` in Drive need to be re-embedded — but first, the old embeddings are deleted via a direct Supabase API call (n8n's built-in vector store node doesn't expose a delete operation, so a raw HTTP request to the Supabase REST API is the only path here), then the file is processed again. Files that haven't changed are skipped entirely.
+
+This is the part that's easy to skip if you're just prototyping, and that you'll regret skipping in production. Without change detection, every run re-embeds everything — you accumulate duplicate embeddings, similarity searches return stale results, and costs grow with every execution. The sync logic keeps the vector store clean and current.
+
+<Mermaid client:load caption="Ingestion sync logic" chart={`
+flowchart TD
+    Start([Run Ingestion]) --> Fetch["Fetch Drive files\n+ Supabase embeddings"]
+    Fetch --> Loop{For each\nDrive file}
+    Loop -->|"Not in Supabase"| EmbedFresh["Embed fresh\n+ store metadata"]
+    Loop -->|"In Supabase,\nnewer modifiedTime"| Delete["Delete old embeddings"]
+    Delete --> ReEmbed["Re-embed file"]
+    Loop -->|"Same modifiedTime"| Skip["Skip"]
+`} />
+
+Once a file clears the change check, it goes through one of two processing paths depending on type.
+
+**Google Docs** are fetched directly via the Docs API, the content is cleaned — stripped of blank lines, trimmed — and split into chunks. Each chunk gets embedded alongside metadata: file name, document ID, creation time, modification time. This metadata becomes queryable later; if the agent needs to know which document a fact came from, or when it was last updated, that information is attached.
+
+**Google Sheets** are more interesting. Each spreadsheet can have multiple sheets, so the pipeline first fetches the list of sheet names, then reads each one separately. The sheet data is then routed based on the sheet name — if the sheet is named `Mailing List`, its data goes into a separate vector store (`email_list`) reserved specifically for recipient information. Everything else goes into the main `documents` store.
+
+That separation exists because mailing list data has a different query pattern. When the agent is looking up who belongs to a group, or what email address corresponds to a name, it needs precise retrieval from a clean structured source — not mixed in with project documentation where similarity search might return the wrong thing.
+
+## Two Vector Stores, One Reason
+
+The system uses two Supabase vector stores: `documents` for general knowledge and `email_list` for recipient data. The agent has both wired as tools, and chooses which to query based on what it needs.
+
+When drafting email content — understanding a project, finding relevant context, retrieving facts — it queries `documents`. When it needs to know who to send to, what email addresses belong to a group, or what metadata a recipient has — it queries `email_list`.
+
+This isn't an architectural complexity for its own sake. Mixing them would mean that a search for "marketing team" might return a project document mentioning the marketing team instead of the actual mailing list entry for that team. Separation keeps retrieval precise.
+
+## The Agent and the Approval Flow
+
+The agent node at the center of this system runs Gemini with a structured prompt and a strict output format. Every response it returns is a JSON object:
+
+```json
+{
+  "text": "",
+  "subject": "",
+  "markdown": "",
+  "approved": false,
+  "send_to_email": [],
+  "send_from_email": "",
+  "attachments": [],
+  "send_email": false
+}
+```
+
+`text` is what the agent says back to the user in the conversation. `markdown` is the email draft. `approved` starts as `false`. The email never sends until `approved` is `true` and `send_email` is `true` — both set explicitly by the user's confirmation, not assumed by the agent.
+
+This constraint is intentional. AI-generated emails being sent without review is a category of mistake that's hard to recover from. The approval gate is structural, not just a UI checkbox. The workflow branches on `approved` — if it's false, the draft is saved but nothing goes out. Only after the user explicitly confirms does the sending path become available.
+
+The questionnaire that follows approval is sequential by design. The agent asks for the recipient, then the sender address (constrained to an allowlist), then attachments. One question at a time. This keeps the conversation focused and prevents the agent from making assumptions about fields it hasn't confirmed.
+
+<Mermaid client:load caption="Approval and send flow" chart={`
+flowchart TD
+    User(["User"]) --> Agent["Gemini Agent"]
+    Agent -->|"markdown not empty"| Save["Save draft\napproved = false"]
+    Save --> Review(["User reviews"])
+    Review -->|Confirms| Approved["approved = true"]
+    Approved --> Q1["Ask: send to?"]
+    Q1 --> Q2["Ask: send from?\nallowlist only"]
+    Q2 --> Q3["Ask: attachments?"]
+    Q3 --> Check{"send_email\n= true?"}
+    Check -->|Yes| Send["Send email"]
+    Agent -->|"text reply only"| Reply(["Response to user"])
+`} />
+
+## Session Memory and State Persistence
+
+Each conversation has a `sessionId`. The agent uses Postgres for conversation memory — the last 10 messages are kept in context, which is enough for a focused email drafting session without the context window becoming unwieldy.
+
+Beyond conversation history, the email draft itself is persisted in a Supabase `email_details` table keyed by `sessionId`. Before generating a new draft, the agent checks whether one already exists for this session — if it does and it's been approved, it won't regenerate unless explicitly asked. This prevents accidental overwrites of approved drafts mid-conversation.
+
+When the sending details are confirmed (recipients, sender), those are written back to the same row. By the time the workflow reaches the send step, all the information it needs is in one place.
+
+## Multi-Channel, One Agent
+
+The same agent runs behind two input channels: a Telegram bot and an n8n chat widget. The workflow detects which channel the input came from (`is_telegram_bot` flag) and routes the response accordingly — Telegram messages go back through the Telegram API, web chat responses go through the chat output node.
+
+This means you can draft and approve an email from a phone over Telegram and have it send without ever opening a browser. The agent doesn't care which surface it's talking through.
+
+## What n8n Made Possible Here
+
+The workflow has around 50 nodes. In code, this would be a small service with several modules: an ingestion script, an embedding pipeline, a conversational API endpoint, session management, email delivery routing. Each of those would need deployment, logging, error handling, and maintenance.
+
+In n8n, the execution trace is visible at every step. If the ingestion pipeline skips a file, I can see exactly which condition it hit and why. If the agent returns malformed JSON, the code node that parses it shows the raw input alongside the error. Debugging is looking, not reasoning in the dark.
+
+The parts that needed real code — JSON parsing, the spreadsheet row serialization, the email array formatting for Postgres — are code nodes, maybe 10 lines each. The orchestration, the branching logic, the tool routing, the session management: all visual. Each component does one thing, and the flow between them is explicit.
+
+That's the architecture pattern I keep returning to. n8n handles what it's good at — orchestration, integrations, visual branching. Code handles what it's good at — data transformation, precise logic. The boundary between them is clear, and both sides are easier to reason about for it.
+
+## What I'd Do Differently
+
+The ingestion pipeline runs manually right now. It should run on a schedule, or better, on a Drive webhook when files change. Manual triggers are fine for early versions but create the failure mode where the vector store drifts out of sync with Drive.
+
+The chunk size for document embedding is currently the default — splitting on newlines, storing lines as chunks. For longer documents, a proper recursive character splitter with overlap would produce better retrieval. Short chunks lose context; the current approach works but isn't optimal.
+
+The approval flow saves the email body as HTML generated from markdown. If the user wants to edit the draft after seeing the HTML preview, there's no path for that yet. Adding a refinement loop — "change the second paragraph" → re-generate → re-preview → re-approve — would make the agent genuinely useful for non-trivial emails.
+
+These are the edges that get visible only once you run something against real use cases, which is the point. The system works. The refinements are known.
+
+## The Pattern, Generalized
+
+The useful abstraction here isn't "email agent." It's: give an AI agent access to a knowledge base built from your own documents, and it can answer questions and generate content that's grounded in what you actually know — not what the model was trained on.
+
+Swap Google Drive for Notion, Supabase for Pinecone, email for Slack messages or calendar invites or reports. The pattern is the same: ingest → embed → retrieve → generate → confirm → act. n8n makes that pattern cheap to wire together and easy to debug when something in the chain breaks.
+
+The knowledge base is the leverage. Everything else is plumbing.
+
+This article covers the technical architecture — how the system is built. The follow-up covers what happens when you apply it to a real business problem: running weekly personalized newsletters at scale for 100+ recipients, with campaign approval, delivery tracking, and automated follow-ups. That's [the next piece](/articles/newsletter-automation-rag-n8n).
