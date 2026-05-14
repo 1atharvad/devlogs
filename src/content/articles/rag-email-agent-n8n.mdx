@@ -20,13 +20,10 @@ This is what I built.
 
 <Mermaid client:load caption="System overview" chart={`
 flowchart LR
-    GDrive["Google Drive\nDocs + Sheets"] --> Ingest[Ingestion Pipeline]
-    Ingest --> VD[("documents\nvector store")]
-    Ingest --> VE[("email_list\nvector store")]
-    User(["User\nTelegram · Chat"]) --> Agent["Gemini Agent\n+ Memory"]
-    VD --> Agent
-    VE --> Agent
-    Agent --> SB[("Supabase\nemail_details")]
+    VD[("documents\nvector store")] --> Agent["Gemini Agent\n+ Memory"]
+    VE[("email_list\nvector store")] --> Agent
+    Reviewer(["Reviewer\nTelegram · Chat"]) <--> Agent
+    Agent <--> SB[("Supabase\nemail_details")]
     Agent --> Send["Send Email"]
 `} />
 
@@ -43,7 +40,7 @@ That's the core. The rest of the system is the plumbing that makes it reliable.
 
 ## The Ingestion Pipeline
 
-Before the agent can retrieve anything, the documents need to be embedded and stored. The ingestion workflow runs on demand and handles three things: what's new, what's changed, and what needs to be cleaned up.
+Before the agent can retrieve anything, the documents need to be embedded and stored. The ingestion workflow is a production n8n workflow — it runs whenever files in Google Drive are added or modified, keeping the vector store in sync with the source documents. Each run handles three things: what's new, what's changed, and what needs to be cleaned up.
 
 When it runs, it pulls all currently embedded documents from Supabase and all files from the Google Drive folder. It then compares them by `modifiedTime`. Files that don't exist in the vector store yet get embedded fresh. Files that do exist but have a newer `modifiedTime` in Drive need to be re-embedded — but first, the old embeddings are deleted via a direct Supabase API call (n8n's built-in vector store node doesn't expose a delete operation, so a raw HTTP request to the Supabase REST API is the only path here), then the file is processed again. Files that haven't changed are skipped entirely.
 
@@ -96,7 +93,11 @@ The agent node at the center of this system runs Gemini with a structured prompt
 
 This constraint is intentional. AI-generated emails being sent without review is a category of mistake that's hard to recover from. The approval gate is structural, not just a UI checkbox. The workflow branches on `approved` — if it's false, the draft is saved but nothing goes out. Only after the user explicitly confirms does the sending path become available.
 
+> n8n's own design philosophy puts it well: a human in the loop is better than an agent on the loose.
+
 The questionnaire that follows approval is sequential by design. The agent asks for the recipient, then the sender address (constrained to an allowlist), then attachments. One question at a time. This keeps the conversation focused and prevents the agent from making assumptions about fields it hasn't confirmed.
+
+The approval step can be toggled off — the workflow supports a bypass mode where the agent proceeds directly to send without waiting for human confirmation. It exists as an option, not a default. For any use case where emails reach real recipients, turning it off means trusting the model to get it right every time, with no recovery path when it doesn't.
 
 <Mermaid client:load caption="Approval and send flow" chart={`
 flowchart TD
@@ -138,7 +139,7 @@ That's the architecture pattern I keep returning to. n8n handles what it's good 
 
 ## What I'd Do Differently
 
-The ingestion pipeline runs manually right now. It should run on a schedule, or better, on a Drive webhook when files change. Manual triggers are fine for early versions but create the failure mode where the vector store drifts out of sync with Drive.
+The ingestion pipeline is triggered by Drive changes — new files and modifications keep the vector store current without manual intervention. The remaining gap is chunk quality: the current approach splits on newlines and stores lines as chunks.
 
 The chunk size for document embedding is currently the default — splitting on newlines, storing lines as chunks. For longer documents, a proper recursive character splitter with overlap would produce better retrieval. Short chunks lose context; the current approach works but isn't optimal.
 

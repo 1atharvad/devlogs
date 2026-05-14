@@ -22,9 +22,8 @@ The automation removes the research and drafting from that loop — not the huma
 
 <Mermaid client:load caption="Weekly campaign flow" chart={`
 flowchart LR
-    Docs["Company Docs\nPDF · DOCX · Excel"] --> VDB[("Vector Store")]
-    Excel["Recipient List\nExcel Sheet"] --> Gen["Generation\nWorkflow"]
-    VDB --> Gen
+    VDB[("Vector Store\npre-built")] --> Gen["Generation\nWorkflow"]
+    Excel["Recipient List\nExcel Sheet"] --> Gen
     Gen --> Drafts["100+ Personalized\nDrafts"]
     Drafts --> TG["Telegram\nApproval"]
     TG -->|Approved| Gmail["Gmail API\nSend"]
@@ -64,6 +63,8 @@ The Gmail draft step matters. Telegram is good for authorization but poor for re
 
 Average time from generation complete to approved send: under 30 minutes.
 
+The approval step can be toggled off for fully automated sending — the option exists in the workflow configuration. For mass outreach to real recipients, that's not recommended. There's no recovery path when an unsupervised model gets it wrong at scale.
+
 ## Delivery and the Follow-up Loop
 
 Once approved, the Gmail API sends each email individually — not BCC, not a mail merge. Each recipient gets an email addressed to them. Gmail read receipts track opens, and the Excel sheet gets updated after each send: delivery status, timestamp, open status.
@@ -73,7 +74,8 @@ Gmail's daily sending limit is 500 emails. For larger campaigns, the system dist
 <Mermaid client:load caption="Delivery tracking and follow-up" chart={`
 flowchart TD
     Send["Email sent"] --> Update["Update Excel\ndelivery + open status"]
-    Wait["3–5 days later"] --> Check["Query Excel\nfor unopened emails"]
+    Update --> Wait["3–5 days later"]
+    Wait --> Check["Query Excel\nfor unopened emails"]
     Check -->|"Unopened found"| Followup["Generate follow-up\nvia RAG"]
     Followup --> Approve["Telegram\napproval"]
     Approve --> Resend["Send follow-up"]
