@@ -19,7 +19,7 @@ export async function GET(context: APIContext) {
 					pubDate: post.data.pubDate,
 					link: `/${key}/${post.id}/`,
 					...(tags.length > 0 && { categories: tags }),
-					customData: `<apiUrl>${context.site}api/posts/${post.id}</apiUrl>`,
+					customData: `<apiUrl>${context.site}api/posts/${post.id}.json</apiUrl>`,
 					_updatedDate: post.data.updatedDate,
 				};
 			});
