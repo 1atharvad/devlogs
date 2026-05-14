@@ -24,6 +24,14 @@ export const getStaticPaths = async () => {
   }));
 };
 
+function cleanBody(raw: string): string {
+  return raw
+    .replace(/^import\s+.+$/gm, '')       // remove import statements
+    .replace(/<[A-Z]\w*[\s\S]*?\/>/g, '') // remove self-closing JSX components
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export const GET = async ({ props, site }: APIContext<Props>) => {
   const { post, category } = props;
 
@@ -37,7 +45,7 @@ export const GET = async ({ props, site }: APIContext<Props>) => {
     updatedDate: post.data.updatedDate?.toISOString() ?? null,
     primaryTag: post.data.primaryTag ?? null,
     tags: post.data.tags,
-    body: post.body ?? '',
+    body: cleanBody(post.body ?? ''),
   };
 
   return new Response(JSON.stringify(data), {
