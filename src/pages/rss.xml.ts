@@ -20,9 +20,10 @@ export async function GET(context: APIContext) {
 					link: `/${key}/${post.id}/`,
 					...(tags.length > 0 && { categories: tags }),
 					customData: [
-						post.data.updatedDate ? `<atom:updated>${post.data.updatedDate.toISOString()}</atom:updated>` : '',
-						`<content:apiUrl>${context.site}api/posts/${post.id}</content:apiUrl>`,
+						`<id>${post.id}</id>`,
+						`<apiUrl>${context.site}api/posts/${post.id}</apiUrl>`,
 					].join(''),
+					_updatedDate: post.data.updatedDate,
 				};
 			});
 		})
@@ -30,12 +31,16 @@ export async function GET(context: APIContext) {
 
 	const allPostsFlat = allPosts.flat();
 
-	const items = allPostsFlat.sort((a, b) => b.pubDate.valueOf() - a.pubDate.valueOf());
+	const items = allPostsFlat
+		.sort((a, b) => b.pubDate.valueOf() - a.pubDate.valueOf())
+		.map(({ _updatedDate: _, ...item }) => item);
 
 	const lastBuildDate = new Date(
 		Math.max(...allPostsFlat.map((post) => {
-			const updated = post.customData?.match(/atom:updated>([^<]+)/)?.[1];
-			return updated ? Math.max(post.pubDate.valueOf(), new Date(updated).valueOf()) : post.pubDate.valueOf();
+			const updated = post._updatedDate;
+			return updated
+				? Math.max(post.pubDate.valueOf(), updated.valueOf())
+				: post.pubDate.valueOf();
 		}))
 	);
 
@@ -46,7 +51,6 @@ export async function GET(context: APIContext) {
 		xmlns: {
 			atom: 'http://www.w3.org/2005/Atom',
 			dc: 'http://purl.org/dc/elements/1.1/',
-			content: 'http://purl.org/rss/1.0/modules/content/',
 		},
 		customData: [
 			`<language>en-us</language>`,
