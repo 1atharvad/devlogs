@@ -19,7 +19,10 @@ export async function GET(context: APIContext) {
 					pubDate: post.data.pubDate,
 					link: `/${key}/${post.id}/`,
 					...(tags.length > 0 && { categories: tags }),
-					...(post.data.updatedDate && { customData: `<atom:updated>${post.data.updatedDate.toISOString()}</atom:updated>` }),
+					customData: [
+						post.data.updatedDate ? `<atom:updated>${post.data.updatedDate.toISOString()}</atom:updated>` : '',
+						`<content:apiUrl>${context.site}api/posts/${post.id}</content:apiUrl>`,
+					].join(''),
 				};
 			});
 		})
@@ -43,6 +46,7 @@ export async function GET(context: APIContext) {
 		xmlns: {
 			atom: 'http://www.w3.org/2005/Atom',
 			dc: 'http://purl.org/dc/elements/1.1/',
+			content: 'http://purl.org/rss/1.0/modules/content/',
 		},
 		customData: [
 			`<language>en-us</language>`,
