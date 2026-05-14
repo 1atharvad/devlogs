@@ -2,6 +2,7 @@
 title: "From Google Marketing to AI Automation: My Developer Journey"
 description: "How I went from being a frontend developer at Google to building AI-powered automation systems - the gambles, the lessons, and the dream I'm living."
 pubDate: "Nov 16 2025"
+updatedDate: "Nov 16 2025"
 heroImage: '@/assets/office.jpg'
 heroImageAlt: "An office desktop window side with a laptop opened alongside a big indoor plant"
 primaryTag: "Career"

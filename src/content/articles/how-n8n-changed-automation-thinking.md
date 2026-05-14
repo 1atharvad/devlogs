@@ -2,6 +2,7 @@
 title: "How n8n Changed the Way I Think About Automation"
 description: "From writing everything in Python from scratch to architecture-first thinking — the mindset shift a developer goes through when they stop resisting visual workflow tools and start using them strategically."
 pubDate: "Dec 18 2025"
+updatedDate: "Dec 18 2025"
 heroImage: '@/assets/n8n-coder.jpg'
 heroImageAlt: "A developer staring at a glowing screen showing a visual workflow diagram, bathed in warm amber light"
 primaryTag: "Automation"

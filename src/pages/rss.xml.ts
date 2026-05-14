@@ -30,7 +30,10 @@ export async function GET(context: APIContext) {
 	const items = allPostsFlat.sort((a, b) => b.pubDate.valueOf() - a.pubDate.valueOf());
 
 	const lastBuildDate = new Date(
-		Math.max(...allPostsFlat.map((post) => post.pubDate.valueOf()))
+		Math.max(...allPostsFlat.map((post) => {
+			const updated = post.customData?.match(/atom:updated>([^<]+)/)?.[1];
+			return updated ? Math.max(post.pubDate.valueOf(), new Date(updated).valueOf()) : post.pubDate.valueOf();
+		}))
 	);
 
 	return rss({

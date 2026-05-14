@@ -2,6 +2,7 @@
 title: "Why Python? And When to Choose Django, Flask, or FastAPI"
 description: "From winning animation contests with Turtle graphics to building production APIs - my journey with Python and the frameworks that power my projects."
 pubDate: "Oct 12 2025"
+updatedDate: "Oct 12 2025"
 heroImage: "@/assets/python-code.jpg"
 heroImageAlt: "Image by suixin390 from Pixabay"
 primaryTag: "Python"
