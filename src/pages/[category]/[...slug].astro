@@ -75,7 +75,7 @@ const allTags = [post.data.primaryTag, ...(post.data.tags || [])].filter(Boolean
 					<span>
 						{labels.dates.postedOn} <FormattedDate class='text-orange-700' date={post.data.pubDate} />
 					</span>
-					{post.data.updatedDate && (
+					{post.data.updatedDate && post.data.updatedDate.toDateString() !== post.data.pubDate.toDateString() && (
 						<span class="bg-transparent border-2 border-orange-600 rounded-full flex-none h-2 w-2" />
 						<span>
 							{labels.dates.updatedOn} <FormattedDate class='text-orange-700' date={post.data.updatedDate} />

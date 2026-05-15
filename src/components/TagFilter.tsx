@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { Button } from 'advi-ui';
+
 interface Props {
   tags: string[];
 }
@@ -26,17 +28,19 @@ export const TagFilter = ({ tags }: Props) => {
       {tags.length > 0 && (
         <div className="flex flex-wrap justify-center gap-2.5 mt-10">
           {tags.map((tag) => (
-            <button
+            <Button
               key={tag}
-              className={`inline-flex items-center rounded-full font-rubik uppercase border px-4 py-1.5 text-sm font-normal transition-colors border-none outline outline-1 ${
+              variant={activeTag === tag ? 'default' : 'outline'}
+              size="sm"
+              className={`rounded-full font-rubik uppercase text-sm font-normal ${
                 activeTag === tag
-                  ? 'bg-orange-600 text-neutral-50 outline-orange-100'
-                  : 'outline-zinc-600 text-zinc-600'
+                  ? '!bg-orange-600 hover:!bg-orange-700 !border-orange-600 !text-neutral-50'
+                  : '!border-zinc-600 !text-zinc-600 hover:!bg-zinc-100'
               }`}
               onClick={() => filterPosts(tag)}
             >
               {tag}
-            </button>
+            </Button>
           ))}
         </div>
       )}
