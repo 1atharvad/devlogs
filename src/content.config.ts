@@ -11,6 +11,7 @@ const postSchema = ({ image }: SchemaContext) =>
 		heroImageAlt: z.string().optional(),
 		examplePage: z.boolean().default(false),
 		draft: z.boolean().default(false),
+		featured: z.boolean().default(false),
 		primaryTag: z.string().optional(),
 		tags: z.array(z.string()).default([]),
 	});
@@ -23,6 +24,5 @@ const createCollection = (name: string) =>
 
 const devlogs = createCollection('devlogs');
 const articles = createCollection('articles');
-const examples = createCollection('examples');
 
-export const collections = { devlogs, articles, examples };
+export const collections = { devlogs, articles };

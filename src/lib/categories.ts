@@ -1,20 +1,15 @@
 import { getCollection } from 'astro:content';
 
 export const categories = {
-	articles: {
-		collection: 'articles' as const,
-		title: 'All Articles',
-		label: 'Articles',
-	},
 	devlogs: {
 		collection: 'devlogs' as const,
 		title: 'All DevLogs',
 		label: 'DevLogs',
 	},
-	examples: {
-		collection: 'examples' as const,
-		title: 'All Examples',
-		label: 'Examples',
+	articles: {
+		collection: 'articles' as const,
+		title: 'All Articles',
+		label: 'Articles',
 	},
 } as const;
 

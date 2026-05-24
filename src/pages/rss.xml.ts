@@ -6,7 +6,7 @@ import siteData from '@/content/site.json';
 import { categories, getCategoryKeys, type CategoryKey } from '@/lib/categories';
 
 export async function GET(context: APIContext) {
-	const categoryKeys = getCategoryKeys().filter((key) => key !== 'examples');
+	const categoryKeys = getCategoryKeys();
 
 	const allPosts = await Promise.all(
 		categoryKeys.map(async (key: CategoryKey) => {

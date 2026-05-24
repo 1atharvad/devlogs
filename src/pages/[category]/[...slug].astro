@@ -34,6 +34,7 @@ export async function getStaticPaths() {
 const { post, category } = Astro.props;
 const config = categories[category as CategoryKey];
 const { Content } = await render(post);
+const isDevlog = category === 'devlogs';
 const allTags = [post.data.primaryTag, ...(post.data.tags || [])].filter(Boolean) as string[];
 ---
 
@@ -86,13 +87,13 @@ const allTags = [post.data.primaryTag, ...(post.data.tags || [])].filter(Boolean
 					{post.data.description}
 				</p>
 			</div>
-			<div class="w-full mb-6">
-				{post.data.heroImage && (
+			{!isDevlog && post.data.heroImage && (
+				<div class="w-full mb-6">
 					<Image class="rounded-2xl"
 							src={post.data.heroImage}
 							alt={post.data.heroImageAlt ?? ''} />
-				)}
-			</div>
+				</div>
+			)}
 			<article class="blog-content">
 				<Content />
 			</article>

@@ -3,24 +3,31 @@ import { ArrowRightIcon } from '@heroicons/react/24/solid';
 
 import { Banner } from '@/components/Banner';
 import Card from '@/components/Card.astro';
+import DevlogCard from '@/components/DevlogCard.astro';
 import Footer from '@/components/Footer.astro';
 import { Header } from '@/components/Header';
 import Image from '@/components/Image.astro';
 import labels from '@/content/labels.json';
 import siteData from '@/content/site.json';
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import FormattedDate from '@/components/FormattedDate.astro';
 import { categories, getCategoryPosts, getCategoryKeys } from '@/lib/categories';
 
 import bannerImage from '@/assets/banner-img.jpg';
+import atharvaImage from '@/assets/atharva_image.jpeg';
+
+const allArticles = await getCategoryPosts('articles');
+const featuredArticle = allArticles.find(p => p.data.featured) ?? allArticles[0];
 
 const postSections = await Promise.all(
 	getCategoryKeys()
-		.filter((key) => key !== 'examples')
-		.map(async (key) => ({
-			title: `Recent ${categories[key].label}`,
-			link: `/${key}`,
-			posts: (await getCategoryPosts(key)).slice(0, 3),
-		}))
+		.map(async (key) => {
+			const posts = await getCategoryPosts(key);
+			const filtered = key === 'articles'
+				? posts.filter(p => p.id !== featuredArticle?.id).slice(0, 3)
+				: posts.slice(0, 5);
+			return { title: `Recent ${categories[key].label}`, link: `/${key}`, posts: filtered };
+		})
 );
 ---
 
@@ -48,19 +55,93 @@ const postSections = await Promise.all(
 		<section>
 			{postSections.map(section =>
 				section.posts.length > 0 ? (
-					<div class="flex items-center justify-between font-rubik mb-6 not-first:mt-[6vh] not-first:md:mt-[9vh]">
-						<h3 class="text-3xl">
-							{section.title}
-						</h3>
-						<a class="inline-flex items-center text-orange-600 hover:underline" href={section.link}>
-							{labels.navigation.viewAll}
-							<ArrowRightIcon className="w-4 h-4 ml-2" />
-						</a>
-					</div>
-					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 list-none m-0 p-0">
-						{section.posts.map((post) => (
-							<Card id={post.id} post={post.data} link={section.link} />
-						))}
+					<div class="not-first:mt-[6vh] not-first:md:mt-[9vh]">
+						{section.link === '/devlogs' ? (
+							<>
+								<div class="flex items-center justify-between font-rubik mb-6">
+									<h3 class="text-3xl">{section.title}</h3>
+									<a class="inline-flex items-center text-orange-600 hover:underline" href={section.link}>
+										{labels.navigation.viewAll}
+										<ArrowRightIcon className="w-4 h-4 ml-2" />
+									</a>
+								</div>
+								<div class="flex flex-col">
+									{section.posts.map((post) => (
+										<DevlogCard id={post.id} post={post.data} link={section.link} />
+									))}
+								</div>
+							</>
+						) : (
+							<div class="flex flex-col gap-[6vh] md:gap-[9vh]">
+								<div class="flex flex-col-reverse gap-8 items-center md:flex-row md:gap-8">
+									<div class="flex-1">
+										<p class="font-rubik text-xs font-semibold uppercase tracking-widest text-orange-600 mb-3">About me</p>
+										<p class="font-rubik text-zinc-500 text-xl md:text-2xl leading-relaxed">
+											Software Engineer with 3+ years building full-stack systems — TypeScript, React, and Python on one side; AI automation, RAG pipelines, and n8n orchestration on the other. I work across the whole stack, from pixel-perfect interfaces to intelligent backend systems.
+										</p>
+									</div>
+									<div class="w-[180px] h-[180px] shrink-0 rounded-full overflow-hidden md:w-[300px] md:h-[300px]">
+										<Image
+											src={atharvaImage}
+											alt="Atharva Devasthali"
+											class="w-full h-full object-cover [object-position:0_-30px]"
+											widths={[300, 600]}
+											sizes="(min-width: 768px) 300px, 180px"
+										/>
+									</div>
+								</div>
+								{featuredArticle && (
+									<a href={`/articles/${featuredArticle.id}`} class="group block">
+										<div class="flex flex-col gap-6 items-center bg-slate-400/10 rounded-2xl p-4 md:p-6 md:flex-row md:gap-8">
+											{featuredArticle.data.heroImage && (
+												<div class="w-full shrink-0 md:w-[40%]">
+													<Image
+														src={featuredArticle.data.heroImage}
+														alt={featuredArticle.data.heroImageAlt ?? featuredArticle.data.title}
+														class="rounded-xl w-full object-cover"
+														widths={[400, 600, 800]}
+														sizes="(min-width: 768px) 40vw, 100vw"
+													/>
+												</div>
+											)}
+											<div class="flex flex-col gap-3 flex-1">
+												<span class="font-rubik text-xs font-semibold uppercase tracking-widest text-orange-600">Featured</span>
+												<h2 class="font-rajdhani font-bold text-2xl md:text-3xl text-zinc-800 group-hover:text-orange-600 transition-colors leading-snug">
+													{featuredArticle.data.title}
+												</h2>
+												<p class="font-rubik text-zinc-500 text-sm md:text-base leading-relaxed">
+													{featuredArticle.data.description}
+												</p>
+												<div class="flex flex-wrap gap-2 mt-1">
+													{[featuredArticle.data.primaryTag, ...(featuredArticle.data.tags ?? [])].filter(Boolean).map(tag => (
+														<span class="font-rubik text-xs rounded-full text-orange-600 px-3 py-1 border border-orange-400">
+															{tag}
+														</span>
+													))}
+												</div>
+												<FormattedDate date={featuredArticle.data.pubDate} class="font-rubik text-xs text-zinc-400 mt-1" />
+											</div>
+										</div>
+									</a>
+								)}
+								{section.posts.length > 0 && (
+									<div>
+										<div class="flex items-center justify-between font-rubik mb-6">
+											<h3 class="text-3xl">Recent Articles</h3>
+											<a class="inline-flex items-center text-orange-600 hover:underline" href={section.link}>
+												{labels.navigation.viewAll}
+												<ArrowRightIcon className="w-4 h-4 ml-2" />
+											</a>
+										</div>
+										<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 list-none m-0 p-0">
+											{section.posts.map((post) => (
+												<Card id={post.id} post={post.data} link={section.link} />
+											))}
+										</div>
+									</div>
+								)}
+							</div>
+						)}
 					</div>
 				) : null
 			)}

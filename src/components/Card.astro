@@ -23,7 +23,7 @@ const { id, post, link } = Astro.props;
 const allTags = [post.primaryTag, ...(post.tags || [])].filter(Boolean) as string[];
 ---
 
-<a href={`${link}/${id}`} class="js-post-card block" data-primary-tag={post.primaryTag || ''}>
+<a href={`${link}/${id}`} class="js-post-card group block" data-primary-tag={post.primaryTag || ''}>
   <AdviCard className="h-full !bg-slate-400/[.1] !border-0 !shadow-none !rounded-2xl p-4">
     {post.heroImage && (
       <div class="relative">
@@ -50,7 +50,7 @@ const allTags = [post.primaryTag, ...(post.tags || [])].filter(Boolean) as strin
           ))}
         </div>
       )}
-      <CardTitle className="font-rubik text-lg mt-2 !tracking-normal" style={{ fontWeight: 'inherit' }}>{post.title}</CardTitle>
+      <CardTitle className="font-rubik text-lg mt-2 !tracking-normal group-hover:text-orange-600 transition-colors" style={{ fontWeight: 'inherit' }}>{post.title}</CardTitle>
       <CardDescription className="font-rubik">{post.description}</CardDescription>
     </CardWrapper>
   </AdviCard>

@@ -4,12 +4,12 @@ import { getCollection, type CollectionEntry } from 'astro:content';
 import type { CategoryKey } from '@/lib/categories';
 
 type Props = {
-  post: CollectionEntry<'articles'> | CollectionEntry<'devlogs'> | CollectionEntry<'examples'>;
+  post: CollectionEntry<'articles'> | CollectionEntry<'devlogs'>;
   category: CategoryKey;
 };
 
 export const getStaticPaths = async () => {
-  const categoryKeys = getCategoryKeys().filter((key) => key !== 'examples');
+  const categoryKeys = getCategoryKeys();
 
   const allPosts = await Promise.all(
     categoryKeys.map(async (key: CategoryKey) => {

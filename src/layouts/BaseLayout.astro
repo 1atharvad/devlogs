@@ -1,8 +1,9 @@
 ---
+import '@/styles/vendor.css';
 import '@/styles/global.scss';
-import 'advi-ui/styles';
 
 import { buildGoogleFontsUrl, type FontConfig } from '@/lib/fontManager';
+import { ChatWidget } from '@/components/ChatWidget';
 
 import FallbackImage from '@/assets/example/blog-placeholder-1.jpg';
 import siteData from '@/content/site.json';
@@ -73,5 +74,6 @@ const { title, description, bodyClassName, image = FallbackImage } = Astro.props
 	</head>
 	<body {...(bodyClassName && { class: bodyClassName })}>
     <slot />
+    <ChatWidget client:load />
 	</body>
 </html>

@@ -1,0 +1,35 @@
+---
+import FormattedDate from '@/components/FormattedDate.astro';
+
+interface Props {
+  id: string;
+  post: {
+    title: string;
+    description: string;
+    pubDate: Date;
+    primaryTag?: string;
+  };
+  link: string;
+}
+
+const { id, post, link } = Astro.props;
+---
+
+<a href={`${link}/${id}`} class="js-post-card block group" data-primary-tag={post.primaryTag || ''}>
+  <div class="flex flex-col md:flex-row md:items-start gap-1 md:gap-4 py-5 border-b border-black/10 hover:border-orange-400 transition-colors">
+    <div class="md:shrink-0 md:text-right md:w-24 md:pt-0.5">
+      <FormattedDate date={post.pubDate} class="text-xs font-rubik text-zinc-500" />
+    </div>
+    <div class="flex-1 min-w-0">
+      {post.primaryTag && (
+        <span class="inline-block font-rubik text-xs font-semibold uppercase tracking-widest text-orange-600 mb-1">
+          {post.primaryTag}
+        </span>
+      )}
+      <h3 class="font-rajdhani font-semibold text-xl text-zinc-800 group-hover:text-orange-600 transition-colors leading-snug">
+        {post.title}
+      </h3>
+      <p class="font-rubik text-sm text-zinc-500 mt-1 line-clamp-2">{post.description}</p>
+    </div>
+  </div>
+</a>

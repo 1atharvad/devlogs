@@ -1,0 +1,50 @@
+---
+title: "Automating Blog Ingestion into the Vector Store"
+description: "How I built an n8n pipeline that reads my RSS feed, checks what's new or updated, and syncs only the changed content into Supabase for the RAG agent to use."
+pubDate: "May 13 2026"
+primaryTag: "DevLogs"
+tags: ["n8n", "RAG", "Supabase", "Automation", "Postgres"]
+---
+
+The AI agent I built for this blog answers questions by searching a Supabase vector store. But that store doesn't fill itself — something has to read the blog posts, chunk them, embed them, and push them in. I was doing this manually. This pipeline automates it.
+
+## The Problem with Manual Ingestion
+
+Every time I publish or update a post, I'd have to manually trigger the embedding workflow. That's fine for a handful of posts, but it doesn't scale and it's easy to forget. The fix is a workflow that knows what's already indexed, what's changed, and only does the work that's actually needed.
+
+## How the Pipeline Works
+
+The entry point is a **Manual Trigger** for now — I run it after publishing. The first step is an **RSS Feed Read** node that pulls from the blog's RSS feed, using a custom `apiUrl` field to get each post's full content URL alongside the standard feed metadata.
+
+From there, each RSS item fans out in two directions in parallel:
+
+- A **Blog Content** HTTP Request node fetches the actual article body from `apiUrl`
+- A **Get Document Count** Postgres query checks whether that post already exists in `blog_documents` by its `document_id`
+
+Both results are merged back together so the next node has both the content and the existence flag.
+
+## The Smart Update Logic
+
+This is the part that makes it efficient. An **If** node branches on whether the document already exists:
+
+**If it doesn't exist** — new post, go straight to embedding and insertion.
+
+**If it does exist** — run a second Postgres query to get the `last_modified` timestamp from the stored metadata. Then a **Filter** node checks whether that timestamp matches today's date. If the post hasn't been touched today, it gets skipped entirely. If it has been updated, the old chunks are deleted first, then the post is re-embedded and re-inserted clean.
+
+That delete-before-reinsert step is important. Without it, updating a post would stack duplicate chunks in the vector store — the agent would start pulling stale content alongside the new version.
+
+## The Embedding Side
+
+Once a document clears the routing logic and is ready to insert, it flows into a **Supabase Vector Store** node in `insert` mode, pointed at the `blog_documents` table.
+
+Three sub-nodes hang off it:
+
+- **Gemini Embedding 2** (`models/gemini-embedding-2`) generates the vectors — same model used on the retrieval side, which matters for cosine similarity to work correctly
+- **Default Data Loader** reads from `$json.body` and attaches metadata: `document_id`, `created_time`, and `modified_time`
+- **Recursive Character Text Splitter** handles chunking before the loader hands content to the embedder
+
+The metadata on each chunk is what makes the update logic possible — querying by `document_id` to find existing records, and reading `modified_time` to decide whether a re-embed is needed.
+
+## What's Next
+
+Right now this is manually triggered. The obvious next step is connecting it to a webhook or a scheduled trigger that fires on publish — so new posts get indexed automatically without me thinking about it. The logic is already smart enough to handle it; it just needs a better entry point.
