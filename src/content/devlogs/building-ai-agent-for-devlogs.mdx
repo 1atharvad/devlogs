@@ -6,6 +6,9 @@ primaryTag: "DevLogs"
 tags: ["n8n", "AI", "RAG", "Supabase", "Gemini"]
 ---
 
+import { Image } from 'astro:assets';
+import chatImg from '../../assets/ai-blog-chat.jpg';
+
 I wanted a way for people visiting the blog to ask questions and actually get useful answers — not generic AI responses, but answers grounded in what I've actually written. The kind of thing where someone asks "what's your take on n8n queue mode?" and gets a real answer pulled from the article where I wrote about it.
 
 That meant building a RAG pipeline. And since I already use n8n for automation, wiring it together there made sense.
@@ -31,6 +34,9 @@ The system prompt keeps it scoped:
 > You are a helpful assistant, you can access supabase vector for answering questions about the blog
 
 Simple, but it's enough. The agent knows its job.
+
+<Image src={chatImg} alt="n8n workflow handling chat requests from the blog widget" class="rounded-xl w-full" />
+*The n8n workflow handling incoming chat messages from the frontend — webhook entry, AI agent, and respond node.*
 
 ## The Frontend
 

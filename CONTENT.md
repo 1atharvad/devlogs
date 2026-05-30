@@ -85,6 +85,19 @@ Run it through these questions:
 
 ---
 
+## Cross-Referencing
+
+If a post builds on, leads into, or is meaningfully related to another post on the blog, link it. Don't assume the reader will find it on their own.
+
+- A devlog that precedes an article → link to the article at the end ("The full writeup is in…")
+- An article that has a related devlog → link where the detail is relevant, not just at the end
+- A devlog in a series → link the previous entry so there's a navigable chain
+- Two posts covering different layers of the same system → link both directions
+
+The goal isn't to cross-link everything — it's to surface context that would genuinely help the reader understand what they're looking at.
+
+---
+
 ## What to Capture in the Moment
 
 When you're building something, note down:
@@ -94,6 +107,35 @@ When you're building something, note down:
 - What you'd do differently
 
 You don't need to write the post immediately. But capturing these four things while they're fresh means you have everything you need when you do sit down to write.
+
+---
+
+## Pre-Publish Checklist
+
+Go through this before marking a post ready.
+
+### Both articles and devlogs
+
+- [ ] **One clear point** — can you state what this post is saying in one sentence?
+- [ ] **The "why" is in there** — not just what you built, but what problem made you build it
+- [ ] **The failed attempt is in there** — what you tried first and why it didn't work (if applicable)
+- [ ] **Cross-references are linked** — any related post on the blog is linked where it's relevant, not just at the end
+- [ ] **Frontmatter is complete** — title, description, pubDate, heroImage, tags all filled in
+
+### Articles
+
+- [ ] **Has a thesis** — there's a claim being made that someone could agree or disagree with
+- [ ] **Shows the output** — if you built something, there's a screenshot, diagram, or video of the final result
+- [ ] **Key implementation detail has a code snippet** — the most novel or non-obvious part is shown in code, not just described
+- [ ] **Ending lands** — the last paragraph is a conclusion, not a disclaimer or apology
+- [ ] **800–2000 words**
+
+### Devlogs
+
+- [ ] **One focused thing** — not a full project dump, one decision or one mechanism
+- [ ] **The core mechanism is shown** — the specific code, config, or workflow step that makes it work
+- [ ] **Edge case or gotcha is named** — the thing that would have saved you time if you'd known it earlier
+- [ ] **300–700 words**
 
 ---
 

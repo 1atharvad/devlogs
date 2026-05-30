@@ -1,0 +1,63 @@
+---
+title: "Replacing n8n's Deprecated Execute Command Node"
+description: "When n8n deprecated the Execute Command node, I needed another way to run shell scripts from workflows. FastAPI already had the right permissions — so I built a custom node that routes execution through it."
+pubDate: "May 24 2026"
+primaryTag: "n8n"
+tags: ["FastAPI", "Automation", "Custom Node"]
+---
+
+import { Image } from 'astro:assets';
+import nodeImg from '../../assets/remote-execute-node.png';
+import nodeDetailsImg from '../../assets/remote-execute-node-details.png';
+import credentialsImg from '../../assets/fastapi-credentials.png';
+
+n8n's Execute Command node let you run shell commands directly from a workflow. It was useful for the cases where you needed to trigger a script on the host — move files, kick off a process, call something that didn't have an API. In newer versions of n8n, it's deprecated and being removed.
+
+I needed a replacement.
+
+## The Constraint
+
+The workflows I run don't need arbitrary shell access — they need access to specific scripts that my FastAPI service already manages. The FastAPI server runs with the right permissions, has access to the directories those scripts touch, and already exposes an `/execute` endpoint that accepts a command and runs it.
+
+The permission model was already solved. The question was just how to reach it from n8n.
+
+<Image src={nodeImg} alt="RemoteExecute node in the n8n node palette" class="rounded-xl w-full" />
+
+## The First Attempt: HTTP Request Node
+
+The obvious path was to use n8n's built-in HTTP Request node and point it at the FastAPI `/execute` endpoint. No custom node needed, just configuration.
+
+It broke immediately. n8n's HTTP Request node doesn't prefix relative URLs — if you configure a base URL in credentials, the node doesn't use it to resolve relative paths. Every request needs a full absolute URL hardcoded into the node configuration. That meant every workflow that called `/execute` would need the full server URL baked in, which breaks the moment the server address changes.
+
+That approach wasn't workable.
+
+## Building the Custom Node
+
+The fix was a custom n8n node — `RemoteExecute` — that handles the credential lookup and URL construction internally.
+
+The node accepts a command input, reads the base URL from a `FastAPI Server` credential, constructs the full endpoint URL itself, and POSTs to `/execute`. The response comes back to the workflow like any other node output.
+
+The credential type holds just the base URL. When the node runs, it appends `/execute` to whatever base URL is configured in the credential. Change the credential once, every workflow that uses the node picks it up. No hardcoded URLs in workflow configuration.
+
+n8n also provides a `/credential-test` endpoint hook — the credential type includes a test that hits the FastAPI server to confirm the connection is valid before saving. Saves the debugging loop of finding out a credential is wrong at workflow runtime.
+
+<Image src={nodeDetailsImg} alt="RemoteExecute node open — command input and credential connection" class="rounded-xl w-full" />
+
+## What It Replaced
+
+The old Execute Command node ran commands directly on the n8n host. The new setup routes through FastAPI, which means:
+
+- The command runs with FastAPI's permissions, not n8n's
+- The `/execute` endpoint can validate or scope what's allowed
+- The n8n container doesn't need host-level shell access
+- The audit trail (what ran, when, what output) lives in FastAPI logs, not scattered across n8n execution history
+
+The tradeoff is an extra network hop. For shell scripts that take seconds to minutes, that's not relevant.
+
+<Image src={credentialsImg} alt="FastAPI Server credential configuration in n8n" class="rounded-xl w-full" />
+
+## The Detail That Made It Work
+
+The SVG icon and unit tests were the last pieces. The icon matters more than it sounds — n8n's node palette is dense, and a recognizable icon makes the node findable without reading labels. The tests cover credential injection and URL construction, which are the two places where this kind of integration silently breaks.
+
+The node ships as part of the custom node package the n8n container mounts at startup. No separate install step.

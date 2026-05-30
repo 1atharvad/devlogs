@@ -6,6 +6,9 @@ primaryTag: "DevLogs"
 tags: ["n8n", "RAG", "Supabase", "Automation", "Postgres"]
 ---
 
+import { Image } from 'astro:assets';
+import pipelineImg from '../../assets/data-ingestion.jpg';
+
 The AI agent I built for this blog answers questions by searching a Supabase vector store. But that store doesn't fill itself — something has to read the blog posts, chunk them, embed them, and push them in. I was doing this manually. This pipeline automates it.
 
 ## The Problem with Manual Ingestion
@@ -22,6 +25,9 @@ From there, each RSS item fans out in two directions in parallel:
 - A **Get Document Count** Postgres query checks whether that post already exists in `blog_documents` by its `document_id`
 
 Both results are merged back together so the next node has both the content and the existence flag.
+
+<Image src={pipelineImg} alt="Blog content ingestion pipeline in n8n" class="rounded-xl w-full" />
+*The complete ingestion workflow in n8n — RSS feed read, existence check, update logic, and Supabase embedding in one pipeline.*
 
 ## The Smart Update Logic
 

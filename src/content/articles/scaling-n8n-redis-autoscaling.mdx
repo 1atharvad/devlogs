@@ -1,0 +1,164 @@
+---
+title: "Beyond One Server: Scaling n8n with Redis Queue Mode and Custom Autoscaling"
+description: "How I went from a single n8n instance crashing under load to a distributed worker system with asymmetric EWMA-based autoscaling — and why naive CPU averaging causes the oscillation problem everyone hits."
+pubDate: "May 13 2026"
+updatedDate: "May 13 2026"
+heroImage: '@/assets/n8n-queue-mode.jpg'
+heroImageAlt: "Distributed server architecture with glowing nodes and data streams"
+primaryTag: "Automation"
+tags: ["n8n", "Redis", "Distributed Systems", "Autoscaling", "FastAPI"]
+---
+
+import Mermaid from '@/components/Mermaid';
+
+I was watching the server monitor when it happened again. CPU at 100%. Workflows queued up, waiting. The ones already running, crawling. n8n hadn't crashed yet, but it was close. Trigger a few heavy workflows at the same time — media processing, API chains, data transformations — and the whole instance grinds to a halt. Everything running on the same process, fighting for the same resources.
+
+The frustrating part was that this wasn't a bug. n8n was doing exactly what it's designed to do on a single server. The limitation wasn't the software. It was the architecture.
+
+That moment pushed me to build something I didn't originally plan to build: a distributed worker system with a custom autoscaler. This is what I built, why, and the specific decisions that made it work.
+
+## The Problem: One Server, Many Workflows
+
+n8n's default execution model is simple — one instance runs everything. Workflow triggers, execution logic, API calls, media processing, all on the same Node.js process on the same machine. For light workloads, this is completely fine. For concurrent, CPU-intensive workflows, it becomes a problem fast.
+
+When multiple heavy workflows fire simultaneously, they compete. One workflow's execution steals CPU time from another. Execution times grow unpredictably. Workflows time out or fail. The UI becomes sluggish because the main instance is doing all the work.
+
+The first instinct is to scale vertically — get a bigger server. More cores, more headroom. And that helps, until it doesn't. You're still funneling everything through one process. You pay for peak capacity even during idle periods. And it's still a single point of failure.
+
+> Scaling vertically delays the problem. Scaling horizontally distributes it.
+
+## The Architecture
+
+Before getting into the autoscaler, here's the full system:
+
+<Mermaid client:load caption="Request flow: from internet to workers" chart={`
+flowchart TD
+    Internet([Internet]) --> Nginx[Nginx]
+    Nginx --> Main["n8n Main Instance\nUI · Triggers · Webhooks"]
+    Main --> Redis[("Redis\nBull Queue")]
+    Redis --> W1["Worker 1\nn8n + FastAPI"]
+    Redis --> W2["Worker 2\nn8n + FastAPI"]
+    Redis --> W3["Worker 3\nn8n + FastAPI"]
+    W1 & W2 & W3 --> PG[("PostgreSQL\nPersistence")]
+`} />
+
+The main n8n instance handles the UI, webhooks, scheduling, and triggers. It never executes heavy work itself — it only pushes jobs into Redis. Workers pull jobs off the queue and execute them independently. FastAPI handles CPU-intensive media processing that would otherwise overwhelm the workflow engine. PostgreSQL stores execution history and workflow state.
+
+A few key environment variables that make this work:
+
+```env
+EXECUTIONS_MODE=queue
+QUEUE_BULL_REDIS_HOST=redis
+OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
+N8N_CONCURRENCY_PRODUCTION_LIMIT=1
+```
+
+`OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true` is worth calling out — without it, manual test runs in the UI bypass the queue and execute directly on the main instance, which defeats the purpose entirely. Every execution, manual or automated, should go through workers.
+
+`N8N_CONCURRENCY_PRODUCTION_LIMIT=1` means each worker handles exactly one job at a time. This sounds restrictive, but it's intentional. More on why below.
+
+## How Queue Mode Works
+
+n8n's queue mode is backed by Bull, a Redis-based job queue library. When a workflow is triggered, n8n pushes a job into `bull:jobs:wait`. Workers watch that queue and pull jobs when they're free. Redis handles the distribution — no job gets picked up by two workers, and no job gets lost if a worker crashes.
+
+The main instance manages `bull:jobs:wait` (jobs waiting to be picked up) and `bull:jobs:active` (jobs currently executing). These two queue depths become the core signals for the autoscaler.
+
+Each worker runs with `concurrency = 1`. A worker handling one job at a time has completely predictable resource behavior. When you want more parallel capacity, you add a worker — you don't load up existing ones. This makes the scaling logic clean: worker count equals concurrent execution capacity, 1:1.
+
+Queue mode solves distribution. It doesn't answer: how many workers should exist? When should you add one? When should you remove one?
+
+> Queue mode solves distribution. It doesn't solve scaling decisions.
+
+## The Autoscaler
+
+I wrote a Python autoscaler (`processes/worker_autoscaler.py`) that runs alongside the stack and manages worker count dynamically. It polls every 30 seconds, reads two signals — Redis queue depth and host CPU usage — and adjusts the number of running workers via `docker compose --scale`.
+
+Workers scale between a minimum of 1 and a maximum of 4.
+
+For CPU readings, the autoscaler mounts the host `/proc` filesystem read-only into the container and reads directly from `/proc/stat`. This gives accurate host-level CPU usage rather than container-scoped metrics.
+
+For queue state, it checks `bull:jobs:wait` (how many jobs are waiting) and `bull:jobs:active` (how many are currently running).
+
+The scaling rules:
+
+| Condition | Action |
+|---|---|
+| Queue has waiting jobs + CPU < 65% | +1 worker |
+| CPU > 88% | Emergency −1 worker |
+| Queue has been idle for 120 seconds | −1 worker |
+| Between any two actions | 90 second cooldown |
+
+The cooldown is important. Without it, the scaler would keep firing — spawning a worker, seeing CPU tick up, removing it, seeing the queue grow again, spawning again. The 90 second pause between decisions prevents that loop.
+
+## The Asymmetric EWMA Problem
+
+This is where most autoscaler implementations go wrong, and where I spent the most time.
+
+The naive approach: read CPU every N seconds, and if the average is above threshold, scale up. Simple. And it causes oscillation.
+
+Here's why. When you spawn a new worker, that worker needs to start up, connect to Redis, and begin executing. During this window — maybe 5 to 15 seconds — CPU spikes because you're initializing a new process while the existing ones are still running. A naive averager sees the spike, decides things got worse, triggers an emergency scale-down, removes a worker, the queue builds up again, triggers a scale-up, and the cycle repeats.
+
+The fix is asymmetric EWMA — Exponentially Weighted Moving Average with different smoothing parameters for rising values and falling values.
+
+```python
+α_rise = 0.5   # react quickly to increasing CPU load
+α_fall = 0.1   # decay slowly from peaks
+```
+
+When CPU goes up, the smoothed value rises fast (α = 0.5 means the new reading gets 50% weight). When CPU drops, the smoothed value falls slowly (α = 0.1 means the new reading only gets 10% weight). The result: the system responds promptly to genuine load increases, but doesn't immediately forget a recent high-CPU event.
+
+In plain terms: the memory of a CPU spike lasts longer than the spike itself. This prevents the autoscaler from seeing CPU drop briefly after a scale-up event and immediately deciding it's safe to scale up again.
+
+> Fast to rise, slow to fall. The autoscaler stays cautious after a spike rather than reacting to the first sign that things look calmer.
+
+Symmetric EWMA — same alpha in both directions — causes the oscillation problem. Asymmetric EWMA breaks the cycle.
+
+## A Problem I Didn't Expect: Community Package Sync
+
+When workers start, they need access to any custom n8n nodes installed on the main instance. In this setup, workers and the main instance share an n8n data volume. The problem is timing: workers can start before the main instance has finished installing community packages, find the packages directory empty, and crash — or worse, start successfully but with missing custom nodes that cause silent failures later.
+
+The fix is in `sh_files/start-n8n-worker.sh`. Before starting n8n in worker mode, the script polls the packages directory every few seconds and waits until it exists and is populated. Five minute timeout. Only then does it run `n8n worker`.
+
+It's an unglamorous solution, but it works. The root cause is a startup race condition that's easy to miss in development (where you start services manually in order) and consistently bites you in production (where docker compose starts everything in parallel).
+
+## Before and After
+
+**Before:** One server running everything. CPU at 100% under concurrent load. Heavy workflows blocked lighter ones. The UI slowed down because the main instance was doing execution work. Single point of failure.
+
+**After:** Main instance only orchestrates — it never touches execution. Workers handle all execution in isolation. A heavy media processing workflow doesn't affect a simple API call running in parallel. Workers scale up when the queue builds, scale down when it clears.
+
+The clearest example: a long-running media workflow used to make every other workflow slow for its entire duration. Now it gets picked up by a worker. Everything else keeps running at full speed.
+
+## What I'm Still Tuning
+
+I want to be direct about where this stands: the system works, and some parameters are still being refined under load testing.
+
+The CPU thresholds (65% for scale-up, 88% for emergency scale-down) are based on the current hardware profile. Different hardware, different workload mix, and these numbers might need adjustment.
+
+The EWMA alphas (0.5 rise, 0.1 fall) are working well but I'm still observing edge cases — specifically very short, very intense bursts that the slow-decay alpha might be holding onto longer than necessary.
+
+The 90 second cooldown is conservative. I'm watching whether it's too conservative — if workloads consistently arrive in bursts, a shorter cooldown might let the scaler respond faster without triggering oscillation.
+
+This isn't a finished product writeup. It's a working architecture being stress-tested and tuned.
+
+## The Core Insight
+
+Three things go into making this reliable, and they're not interchangeable:
+
+> n8n gives you orchestration. Redis gives you distribution. But intelligent scaling is what makes the system reliable.
+
+You can have distribution without scaling intelligence — static workers that hit their limit when load spikes. You can try to scale without distribution — a bigger single node that still contends with itself. The combination is what produces a system that handles variable, concurrent load without degrading.
+
+And within the scaling logic, the asymmetric EWMA is the piece that most autoscaler writeups skip. Symmetric averaging causes oscillation. Fast-rise, slow-fall doesn't.
+
+> Without scaling logic, you're not solving the problem — you're just moving it.
+
+## What's Next
+
+A few things I'm actively thinking about:
+
+- Cross-server worker coordination — right now each server scales its own workers independently; the next step is cluster-aware scaling decisions
+- Using queue depth as the primary scaling signal with CPU as a safety brake, rather than treating both as equal inputs
+- Better observability into what the autoscaler decided and why — currently mostly logs, eventually proper metrics
+
+If you're running n8n at scale, I'm curious: are you relying on queue mode alone with fixed worker counts, or have you added custom scaling logic on top?
