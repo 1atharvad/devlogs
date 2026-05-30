@@ -24,4 +24,4 @@ This isn't scaling. It's copying the problem. Each server was running a full n8n
 
 The operational overhead wasn't the only issue. The architecture was wrong at a level that more servers couldn't fix. What was needed wasn't more instances running all workflows — it was separation between the thing that manages workflows and the things that execute them.
 
-That's what led to looking at queue mode.
+That's what led to looking at [queue mode](/devlogs/n8n-queue-mode).

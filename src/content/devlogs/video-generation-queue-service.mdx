@@ -57,7 +57,7 @@ while True:
     r.set(f"job:{job_id}:output", result["output_path"], ex=JOB_TTL_SECS)
 ```
 
-`blpop` blocks until a job arrives — no polling, no sleep loop. Status transitions are written back to Redis at each stage so the client always has a current view: `queued` → `processing` → `completed`.
+`blpop` blocks until a job arrives — no polling, no sleep loop. Status transitions are written back to Redis at each stage so the client always has a current view: `processing` → `completed`.
 
 ## What Happens on Failure
 

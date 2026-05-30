@@ -6,7 +6,7 @@ primaryTag: "n8n"
 tags: ["Redis", "Python", "FastAPI", "Automation"]
 ---
 
-The queue mode setup from the previous entry works. Workers pull jobs, execute them, and report back. The concurrency=1 limit means each worker's resource usage is predictable. What it doesn't do is answer the question that actually matters under variable load: how many workers should be running right now?
+The [queue mode setup](/devlogs/n8n-queue-mode) from the previous entry works. Workers pull jobs, execute them, and report back. The concurrency=1 limit means each worker's resource usage is predictable. What it doesn't do is answer the question that actually matters under variable load: how many workers should be running right now?
 
 Fixed worker count is the obvious answer. Run three workers, always. But that means three workers sitting mostly idle on a quiet afternoon and three workers potentially insufficient during a burst. The math doesn't work for a workload that isn't consistent.
 

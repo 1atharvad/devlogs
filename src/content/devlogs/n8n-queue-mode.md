@@ -1,6 +1,6 @@
 ---
 title: "Queue Mode and the Concurrency Lie"
-description: "n8n's queue mode with Redis solves the duplication problem — one main instance, workers that just execute. But the default concurrency model doesn't know anything about CPU. Setting concurrency to 5 on a CPU-bound workflow is meaningless."
+description: "n8n's queue mode solves the duplication problem: one main instance, workers that just execute. But its concurrency is a job count, not a resource limit — useless for CPU-bound workflows."
 pubDate: "Apr 14 2026"
 primaryTag: "n8n"
 tags: ["Redis", "Automation"]

@@ -42,7 +42,7 @@ Markup(f'<span class="badge">{val}</span>')
 Markup('<span class="badge">{}</span>').format(escape(val))
 ```
 
-`escape()` from `markupsafe` HTML-encodes `val` before it's interpolated. `Markup.format()` then treats the already-escaped value as safe. The template string itself contains no user data, so marking it as `Markup` is fine.
+`Markup.format()` auto-escapes any argument that isn't already a `Markup` instance before substituting it — `val` never touches the template string raw. The fundamental problem with `Markup(f-string)` is that the f-string is evaluated before `Markup` ever sees it, so there's nothing left to escape.
 
 ## Frontend Build Pipeline
 

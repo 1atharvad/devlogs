@@ -38,9 +38,9 @@ Running these pipelines on CPU — standard Mac setup, no GPU acceleration — a
 
 The fix was MPS — Apple's Metal Performance Shaders, which exposes the GPU on Apple Silicon to PyTorch workloads. The API is the same. You move the tensors to the MPS device instead of CPU and most of the computation moves to the GPU.
 
-The result dropped execution time from three hours to around 30 minutes for a 90-second video. That's still slow by any production standard, but it crossed the threshold from "this is unusable" to "this is testable." Those are meaningfully different situations.
+The result dropped execution time from three hours to around 36 minutes for a 90-second video. That's still slow by any production standard, but it crossed the threshold from "this is unusable" to "this is testable." Those are meaningfully different situations.
 
-The 30-minute number became the frame for everything that followed. Every model decision, every pipeline choice, every optimization was made inside the constraint of what MPS could run and how fast it could run it. MPS is not CUDA. The newer, more capable models in this space are written for CUDA and have partial or no MPS support. That limitation shaped the entire architecture.
+The 36-minute number became the frame for everything that followed. Every model decision, every pipeline choice, every optimization was made inside the constraint of what MPS could run and how fast it could run it. MPS is not CUDA. The newer, more capable models in this space are written for CUDA and have partial or no MPS support. That limitation shaped the entire architecture.
 
 ## What Wav2Lip Actually Solves
 
@@ -113,7 +113,7 @@ The talking head is one layer of the final video, not the product itself.
 
 The compositor built on top of this pipeline renders a TV news-style frame: dark background, red accent bar along the top, ticker strip along the bottom, logo trapezoid in the corner. The talking head is composited onto the left side of the frame. The right side carries the structured content — job title, company, location, skills — laid out in a format designed to be readable in the first few seconds of a scroll.
 
-![Source face used as input to the talking-head pipeline](@/assets/talking-head-output.jpg)
+![Source face used as input to the talking-head pipeline](../../assets/talking-head-output.jpg)
 
 The output is a full-frame video ready for upload. The pipeline goes from job description and TTS audio to a YouTube-ready video without manual intervention at any step. How that pipeline is wrapped into a production queue service — Redis, persistent workers, async job polling — is covered in [Wrapping the Video Pipeline in a Queue Service](/devlogs/video-generation-queue-service).
 
@@ -123,7 +123,7 @@ The output is functional. It's also mechanical in a way that's honest to name.
 
 The combination of LivePortrait and Wav2Lip gets closer to natural than any single model in this space that runs on MPS. But these are older models, and the gap between them and what newer CUDA-based models can produce is real and visible. The motion is right. The lip sync is right. The face still reads as generated if you're looking for it.
 
-The path to closing that gap is clear: an NVIDIA GPU drops total execution time from 30 minutes to 5 or 6 minutes and opens access to newer open-source models that produce substantially more natural output. The pipeline architecture stays the same. The hardware changes what you can run on it.
+The path to closing that gap is clear: an NVIDIA GPU drops total execution time from 36 minutes to 5 or 6 minutes and opens access to newer open-source models that produce substantially more natural output. The pipeline architecture stays the same. The hardware changes what you can run on it.
 
 The $1,000-a-day problem with Veo3 is still the right framing. Building the pipeline instead of using the API is the correct call at this volume. The result isn't Veo3 quality — but it's running, it's automated, and the ceiling is a hardware decision, not an architecture one.
 
