@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="documentchunk",
             name="embedding",
-            field=pgvector.django.VectorField(dimensions=3072),
+            field=pgvector.django.VectorField(dimensions=768),
         ),
         migrations.AddIndex(
             model_name="documentchunk",
