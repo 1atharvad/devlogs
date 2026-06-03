@@ -36,7 +36,6 @@ class Command(BaseCommand):
         embeddings = GoogleGenerativeAIEmbeddings(
             model=rag_setting("EMBEDDING_MODEL"),
             google_api_key=rag_setting("GOOGLE_API_KEY"),
-            output_dimensionality=rag_setting("EMBEDDING_DIMENSIONS"),
         )
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=rag_setting("CHUNK_SIZE"),

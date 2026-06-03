@@ -10,7 +10,6 @@ class PgVectorRetriever:
         self._embeddings = GoogleGenerativeAIEmbeddings(
             model=rag_setting("EMBEDDING_MODEL"),
             google_api_key=rag_setting("GOOGLE_API_KEY"),
-            output_dimensionality=rag_setting("EMBEDDING_DIMENSIONS"),
         )
 
     def invoke(self, query: str, k: int | None = None) -> list[Document]:
