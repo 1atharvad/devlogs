@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ("title", models.CharField(blank=True, max_length=255)),
                 ("content", models.TextField()),
                 ("metadata", models.JSONField(default=dict)),
-                ("embedding", pgvector.django.VectorField(dimensions=768)),
+                ("embedding", pgvector.django.VectorField(dimensions=1536)),
                 ("modified_time", models.DateTimeField(blank=True, null=True)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
             ],

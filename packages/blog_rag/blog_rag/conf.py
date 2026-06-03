@@ -2,8 +2,8 @@ from django.conf import settings
 
 DEFAULTS = {
     "GOOGLE_API_KEY": None,
-    "EMBEDDING_MODEL": "models/gemini-embedding-001",
-    "EMBEDDING_DIMENSIONS": 768,
+    "EMBEDDING_MODEL": "models/gemini-embedding-2",
+    "EMBEDDING_DIMENSIONS": 1536,
     "OPENROUTER_API_KEY": None,
     "OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1",
     "CHAT_MODEL": "openai/gpt-4o-mini",

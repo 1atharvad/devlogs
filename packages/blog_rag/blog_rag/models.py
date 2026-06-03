@@ -8,7 +8,7 @@ class DocumentChunk(models.Model):
     title = models.CharField(max_length=255, blank=True)
     content = models.TextField()
     metadata = models.JSONField(default=dict)
-    embedding = VectorField(dimensions=768)
+    embedding = VectorField(dimensions=1536)
     modified_time = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
