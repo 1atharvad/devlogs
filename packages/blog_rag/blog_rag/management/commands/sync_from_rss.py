@@ -1,3 +1,25 @@
+"""
+Management command: sync_from_rss
+
+Reads a blog's RSS feed, fetches the full post body for each item via the
+apiUrl field in the feed, splits the text into overlapping chunks, embeds
+each chunk with Gemini, and upserts the results into the DocumentChunk table.
+
+Usage:
+    python manage.py sync_from_rss <rss_url> [--force]
+
+Skip/update logic:
+    - If a post's document_id already exists in the DB and modified_time has
+      not changed, the post is skipped.
+    - If modified_time is newer, the old chunks are deleted and re-embedded.
+    - --force re-embeds every post regardless of modified_time.
+
+Rate limiting:
+    Gemini's embedding API enforces per-minute quotas. _embed_with_retry
+    catches HTTP 429 responses and waits 60 seconds before retrying (up to
+    3 attempts total).
+"""
+
 import json
 import time
 import urllib.request
@@ -14,6 +36,7 @@ class Command(BaseCommand):
     help = "Sync blog posts from RSS feed into the RAG vector store"
 
     def add_arguments(self, parser):
+        """Register CLI arguments: rss_url (positional) and --force (flag)."""
         parser.add_argument("rss_url", help="URL of the RSS feed")
         parser.add_argument(
             "--force",
@@ -22,6 +45,12 @@ class Command(BaseCommand):
         )
 
     def _embed_with_retry(self, embeddings, chunks, max_retries=3):
+        """
+        Call embeddings.embed_documents(chunks), retrying on HTTP 429.
+
+        Waits 60 seconds between attempts. Raises the original error if all
+        retries are exhausted or if the error is not rate-limit related.
+        """
         for attempt in range(max_retries):
             try:
                 return embeddings.embed_documents(chunks)
@@ -33,6 +62,15 @@ class Command(BaseCommand):
                     raise
 
     def handle(self, *args, **options):
+        """
+        Main entry point called by Django's management framework.
+
+        Fetches the RSS feed, iterates over every <item>, and for each post:
+        1. Checks whether a chunk with the same document_id already exists.
+        2. Skips, deletes-and-re-embeds, or creates fresh chunks as needed.
+        3. Prints a one-line status per post (skip / update / new).
+        4. Prints a summary count at the end.
+        """
         from ...conf import get as rag_setting
         from ...models import DocumentChunk
 

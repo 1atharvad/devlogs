@@ -1,55 +1,49 @@
-from typing import TypedDict
+"""
+LangGraph ReAct agent that powers the /chat/ endpoint.
 
-from langchain_core.documents import Document
+The agent is built once at import time (module-level singleton) using
+create_react_agent from langgraph.prebuilt. It receives a single tool —
+search_blog — and decides on its own whether to call it based on the
+conversation so far.
+
+Conversation memory is stored in _memory (a MemorySaver). Each request passes
+a thread_id via the LangGraph config, so separate sessions get separate
+history. Note: MemorySaver is in-process only — history is lost on restart and
+not shared across multiple workers. Switch to PostgresSaver for multi-process
+deployments.
+"""
+
+from langchain_core.tools import tool
 from langchain_openai import ChatOpenAI
-from langgraph.graph import END, START, StateGraph
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.prebuilt import create_react_agent
 
 from ..conf import get as rag_setting
-from .prompts import RAG_PROMPT
+from .prompts import SYSTEM_PROMPT
 from .retriever import get_retriever
 
 
-class RAGState(TypedDict):
-    question: str
-    documents: list[Document]
-    answer: str
-    sources: list[dict]
+@tool
+def search_blog(query: str) -> str:
+    """Search blog posts and devlogs for information relevant to the query."""
+    docs = get_retriever().invoke(query)
+    return "\n\n".join(
+        f"[{doc.metadata.get('title', '?')}]({doc.metadata.get('source', '')})\n{doc.page_content}"
+        for doc in docs
+    )
 
 
-def retrieve_node(state: RAGState) -> dict:
-    docs = get_retriever().invoke(state["question"])
-    return {"documents": docs}
+# MemorySaver is in-process only — history is lost on restart and not shared
+# across multiple workers. For multi-process deployments use PostgresSaver.
+_memory = MemorySaver()
 
-
-def generate_node(state: RAGState) -> dict:
-    llm = ChatOpenAI(
+rag_agent = create_react_agent(
+    model=ChatOpenAI(
         model=rag_setting("CHAT_MODEL"),
         api_key=rag_setting("OPENROUTER_API_KEY"),
         base_url=rag_setting("OPENROUTER_BASE_URL"),
-    )
-    context = "\n\n".join(
-        f"[{doc.metadata.get('title') or doc.metadata.get('source', '?')}]\n{doc.page_content}"
-        for doc in state["documents"]
-    )
-    result = (RAG_PROMPT | llm).invoke({
-        "context": context,
-        "question": state["question"],
-    })
-    sources = [
-        {"source": doc.metadata.get("source", ""), "title": doc.metadata.get("title", "")}
-        for doc in state["documents"]
-    ]
-    return {"answer": result.content, "sources": sources}
-
-
-def _build_graph():
-    g = StateGraph(RAGState)
-    g.add_node("retrieve", retrieve_node)
-    g.add_node("generate", generate_node)
-    g.add_edge(START, "retrieve")
-    g.add_edge("retrieve", "generate")
-    g.add_edge("generate", END)
-    return g.compile()
-
-
-rag_graph = _build_graph()
+    ),
+    tools=[search_blog],
+    checkpointer=_memory,
+    prompt=SYSTEM_PROMPT,
+)

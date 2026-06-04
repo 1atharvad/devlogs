@@ -6,7 +6,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "setup:rag": "cd packages/blog_rag && python3.11 -m venv .venv && .venv/bin/pip install -e \".[dev]\"",
+    "test:rag": "cd packages/blog_rag && .venv/bin/pytest -v"
   },
   "dependencies": {
     "@astrojs/mdx": "^4.3.13",

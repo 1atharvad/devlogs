@@ -21,6 +21,16 @@ dependencies = [
     "openai>=1.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["blog_rag*"]

@@ -1,3 +1,11 @@
+"""
+Django AppConfig for the blog_rag package.
+
+The host project activates this package by adding "blog_rag" to
+INSTALLED_APPS. Django then picks up BlogRagConfig automatically via the
+default_app_config convention (or the explicit apps.py entry point).
+"""
+
 from django.apps import AppConfig
 
 
