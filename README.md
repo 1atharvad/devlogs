@@ -4,11 +4,13 @@
 
 ### Building Things, Breaking Things, Learning Fast
 
----
-
 *Lessons from full-stack development, DevOps experiments, and side projects.*
 
+[Blog](https://blog.atharvadevasthali.com) · [RSS](https://blog.atharvadevasthali.com/rss.xml)
+
 </div>
+
+---
 
 ## About
 
@@ -22,17 +24,11 @@ ADevLogs is where I document what I discover while building real-world software.
 
 **Articles** — Polished pieces on topics I've explored thoroughly — tutorials, guides, and technical breakdowns.
 
-**Projects** — Behind-the-scenes looks at side projects and experiments.
+## What's in This Repo
 
-## Philosophy
+The blog is built with Astro and deployed on Vercel.
 
-I believe the best learning happens when you're building something real. Every bug is a lesson. Every failed deployment is a story. Every refactor teaches you something about your past self.
-
-This isn't about perfection — it's about progress.
-
-## Stay Connected
-
-Subscribe to the [RSS Feed](https://blog.atharvadevasthali.com/rss.xml) to get new posts delivered directly.
+This repo also contains [`packages/blog_rag`](packages/blog_rag/README.md) — a Django package that powers the AI chat widget on the site. It does semantic search over blog content using pgvector and answers questions with a LangGraph agent.
 
 ---
 
