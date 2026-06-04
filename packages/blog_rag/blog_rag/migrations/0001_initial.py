@@ -1,5 +1,5 @@
-import pgvector.django
 from django.db import migrations, models
+from pgvector.django import VectorField
 
 
 class Migration(migrations.Migration):
@@ -20,19 +20,9 @@ class Migration(migrations.Migration):
                 ("title", models.CharField(blank=True, max_length=255)),
                 ("content", models.TextField()),
                 ("metadata", models.JSONField(default=dict)),
-                ("embedding", pgvector.django.VectorField(dimensions=768)),
+                ("embedding", VectorField(dimensions=3072)),
                 ("modified_time", models.DateTimeField(blank=True, null=True)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
-        ),
-        migrations.AddIndex(
-            model_name="documentchunk",
-            index=pgvector.django.HnswIndex(
-                name="doc_chunk_embedding_hnsw_idx",
-                fields=["embedding"],
-                m=16,
-                ef_construction=64,
-                opclasses=["vector_cosine_ops"],
-            ),
         ),
     ]
