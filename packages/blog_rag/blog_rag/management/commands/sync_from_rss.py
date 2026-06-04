@@ -1,10 +1,12 @@
 import json
+import time
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
 from django.core.management.base import BaseCommand
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai._common import GoogleGenerativeAIError
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
@@ -18,6 +20,17 @@ class Command(BaseCommand):
             action="store_true",
             help="Re-embed all posts regardless of modified time",
         )
+
+    def _embed_with_retry(self, embeddings, chunks, max_retries=3):
+        for attempt in range(max_retries):
+            try:
+                return embeddings.embed_documents(chunks)
+            except GoogleGenerativeAIError as e:
+                if "429" in str(e) and attempt < max_retries - 1:
+                    self.stdout.write(f"  rate limited, waiting 60s...")
+                    time.sleep(60)
+                else:
+                    raise
 
     def handle(self, *args, **options):
         from ...conf import get as rag_setting
@@ -73,7 +86,7 @@ class Command(BaseCommand):
                 stats["new"] += 1
 
             chunks = splitter.split_text(post["body"])
-            vectors = embeddings.embed_documents(chunks)
+            vectors = self._embed_with_retry(embeddings, chunks)
 
             DocumentChunk.objects.bulk_create([
                 DocumentChunk(
