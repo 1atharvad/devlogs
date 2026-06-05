@@ -8,6 +8,7 @@ jobs:
     if: |
       github.event.deployment_status.state == 'success' &&
       github.event.deployment_status.environment == 'Production'
+    environment: production
     runs-on: ubuntu-latest
     steps:
       - name: Sync RAG content
