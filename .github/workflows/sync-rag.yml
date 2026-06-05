@@ -1,0 +1,17 @@
+name: Sync RAG on Deploy
+
+on:
+  deployment_status:
+
+jobs:
+  sync:
+    if: |
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.environment == 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync RAG content
+        run: |
+          curl -X POST ${{ secrets.RAG_SYNC_URL }} \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            -f

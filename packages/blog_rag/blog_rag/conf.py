@@ -25,6 +25,7 @@ DEFAULTS = {
     "CHUNK_OVERLAP": 50,
     "RSS_URL": "https://blog.atharvadevasthali.com/rss.xml",
     "SYNC_SECRET": None,       # Required — set a long random string
+    "SYNC_CRON_HOURS": None,  # Comma-separated hours to sync e.g. "0,6,12,18"
 }
 
 

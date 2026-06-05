@@ -13,3 +13,11 @@ class BlogRagConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "blog_rag"
     verbose_name = "Blog RAG"
+
+    def ready(self):
+        from .conf import get as rag_setting
+        from . import scheduler
+
+        cron_hours = rag_setting("SYNC_CRON_HOURS")
+        if cron_hours:
+            scheduler.start(cron_hours)

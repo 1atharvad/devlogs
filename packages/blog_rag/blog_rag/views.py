@@ -5,14 +5,12 @@ ChatView   — conversational endpoint backed by the LangGraph ReAct agent.
              Maintains per-session memory via session_id / thread_id.
 SearchView — thin wrapper around the vector retriever for direct similarity
              search without going through the LLM.
-SyncView   — webhook endpoint called by Vercel after a successful deploy.
+SyncView   — called by GitHub Actions on deployment_status success.
              Runs sync_from_rss in a background thread so the response
-             returns immediately and Vercel doesn't time out.
+             returns immediately.
 """
 
-import hashlib
 import hmac
-import json
 import re
 import threading
 import uuid
@@ -128,51 +126,34 @@ class SearchView(APIView):
 
 class SyncView(APIView):
     """
-    POST /sync/ — Vercel deploy webhook that re-syncs content from RSS.
+    POST /sync/ — triggers a content sync from RSS.
 
-    Wire this up in Vercel → Team Settings → Webhooks:
-        URL:    https://your-server.com/rag/sync/
-        Events: deployment.succeeded
+    Called by the GitHub Actions workflow on deployment_status success.
+    Authenticates via a Bearer token in the Authorization header.
 
-    Vercel POSTs JSON and signs the raw body with HMAC-SHA1 using the webhook
-    secret it shows you after creation. Set that secret as SYNC_SECRET in the
-    host project's BLOG_RAG settings.
-
-    Only production deployments trigger a sync — preview deploys are ignored.
-
-    The sync runs in a background thread so the response returns before
-    Vercel's webhook timeout (the management command can take minutes).
+    Set SYNC_SECRET in BLOG_RAG settings to a long random string,
+    and add the same value as RAG_SYNC_SECRET in GitHub Actions secrets.
 
     Response:
-        202 {"status": "sync started"}        — background thread launched.
-        202 {"status": "skipped (not prod)"}  — preview deploy, ignored.
-        401 {"detail": "unauthorized"}        — bad or missing signature.
+        202 {"status": "sync started"}   — background thread launched.
+        401 {"detail": "unauthorized"}   — missing or wrong token.
         503 {"detail": "RSS_URL not configured"}
     """
 
     def post(self, request):
-        """Verify Vercel's HMAC-SHA1 signature, then sync if this is a production deploy."""
         secret = rag_setting("SYNC_SECRET")
         rss_url = rag_setting("RSS_URL")
 
         if not secret:
             return Response({"detail": "unauthorized"}, status=401)
 
-        # Vercel signs the raw request body — must read before DRF parses it.
-        raw_body = request.body
-        signature = request.headers.get("x-vercel-signature", "")
-        expected = hmac.new(secret.encode(), raw_body, hashlib.sha1).hexdigest()
-        if not hmac.compare_digest(signature, expected):
+        auth = request.headers.get("Authorization", "")
+        token = auth.removeprefix("Bearer ").strip()
+        if not hmac.compare_digest(token, secret):
             return Response({"detail": "unauthorized"}, status=401)
 
         if not rss_url:
             return Response({"detail": "RSS_URL not configured"}, status=503)
-
-        # Skip preview deploys — only sync on production.
-        payload = json.loads(raw_body)
-        target = payload.get("payload", {}).get("deployment", {}).get("target", "")
-        if target != "production":
-            return Response({"status": "skipped (not prod)"}, status=202)
 
         def _run():
             from django.core.management import call_command
