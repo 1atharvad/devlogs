@@ -10,9 +10,11 @@ jobs:
       github.event.deployment_status.environment == 'Production'
     environment: production
     runs-on: ubuntu-latest
+    env:
+      RAG_SYNC_URL: ${{ vars.RAG_SYNC_URL }}
     steps:
       - name: Sync RAG content
         run: |
-          curl -X POST ${{ secrets.RAG_SYNC_URL }} \
+          curl -X POST $RAG_SYNC_URL \
             -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
             -f
