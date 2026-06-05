@@ -6,7 +6,7 @@ updatedDate: "Dec 18 2025"
 heroImage: '@/assets/n8n-coder.jpg'
 heroImageAlt: "A developer staring at a glowing screen showing a visual workflow diagram, bathed in warm amber light"
 primaryTag: "Automation"
-tags: ["n8n", "Automation", "Architecture", "FastAPI"]
+tags: ["n8n", "Architecture", "FastAPI"]
 ---
 
 For a long time, I thought automation meant code. Python scripts, scheduled jobs, custom retry logic, hand-rolled orchestration. Every piece written from scratch, every edge case handled explicitly. That felt like the right way to do it — the developer way. Full control over execution, full ownership of the logic, no black boxes.

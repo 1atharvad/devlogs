@@ -1,59 +1,79 @@
 ---
-title: "n8n Folder Assignment Doesn't Work via the API"
-description: "The n8n REST API can move workflows between projects but not into folders within one. The same gap shows up in the CLI export. The fix for both was postgres."
+title: "Git Pull and Push for Self-Hosted n8n"
+description: "n8n's git integration is enterprise-only. Here's how to build a pull/push workflow for the community edition that actually preserves folder structure — which the CLI doesn't do on its own."
 pubDate: "Jun 02 2026"
 primaryTag: "n8n"
-tags: ["Python", "FastAPI", "PostgreSQL"]
+tags: ["PostgreSQL", "Docker", "Infrastructure"]
 ---
 
-Building a workflow management UI meant needing two things from n8n: which folder each workflow belongs to, and the ability to reassign it. Both turned out to be gaps in the REST API.
+n8n has git integration — but it's an enterprise feature. On the self-hosted community edition, there's no export-and-commit built in, workflows live only in the database, and if something goes wrong there's no rollback. For a production setup running critical automation, that's a problem.
 
-The workflows list endpoint returns workflow metadata but no folder data. The folders endpoint returns folders but not which workflows they contain. There's no join — you can't get a full picture in a single call, and there's no documented way to query "all workflows with their current folder."
+The solution was a pair of shell scripts — `pull_workflows.sh` and `push_workflows.sh` — wired up as `npm run pull-workflows` and `npm run push-workflows`. Pull snapshots the current state to JSON files in the repo. Push does a full wipe-and-restore from those files. The hard part was folder structure: n8n's CLI drops it silently on both ends.
 
-The transfer endpoint exists but only moves workflows between projects. Moving a workflow into a folder within the same project isn't supported. The API accepts the request and returns 200, but nothing changes.
+## The Folder Problem
 
-## Going Direct to Postgres
+n8n's CLI export produces one JSON file per workflow. What it doesn't include is which folder the workflow belongs to — `parentFolder` and `parentFolderId` are absent from every exported file. Import those files back and every workflow lands in the unfiled list, folder structure gone.
 
-n8n stores everything in postgres. The schema has `workflow_entity`, `folder`, and an `n8n_workflow_folder` join table that holds the assignment. None of that is hidden — it's just not exposed usefully through the API.
+The REST API has a transfer endpoint but it only moves workflows between projects, not into folders within the same project. It accepts the request, returns 200, and changes nothing.
 
-The fix was a second SQLAlchemy session pointed at n8n's database and a direct query:
+Folder assignments live in n8n's postgres database in an `n8n_workflow_folder` join table. That's the only reliable place to read or write them.
 
-```python
-rows = await session.execute(
-    select(WorkflowEntity, Folder)
-    .outerjoin(N8nWorkflowFolder, WorkflowEntity.id == N8nWorkflowFolder.workflow_id)
-    .outerjoin(Folder, N8nWorkflowFolder.folder_id == Folder.id)
-)
-```
+## Pull: Inject Folder Data Before Committing
 
-One query, full picture — workflow metadata and folder assignment together.
-
-Reassignment is a postgres `UPDATE` on `n8n_workflow_folder`. If no row exists yet (workflow has never been assigned a folder), it's an insert. Removing a folder assignment is a delete on the same row. Folder creates, renames, and deletes still go through the REST API — those work fine. The workaround is only for the assignment relationship itself.
-
-## The Same Gap in the CLI
-
-The backup/restore scripts hit the same problem from a different angle.
-
-n8n's CLI can export workflows to JSON, but the exported files don't include folder assignment — `parentFolder` and `parentFolderId` are absent from the output. A full backup that faithfully restores folder structure can't rely on the CLI export alone.
-
-The fix was to inject the folder data before committing the backup. The export script reads the current folder assignments from postgres, then merges them into each exported JSON file before writing to disk. A `manifest.json` tracks which workflow IDs are archived so restore can skip them.
-
-Restore is a wipe-then-rebuild: delete all workflows and folders via the REST API, import the saved JSONs via CLI, then re-run the folder assignments via postgres `UPDATE`. The import step gets workflows back into n8n; the postgres step puts them back in the right folders. Without that second step, every workflow lands in the unfiled list regardless of what the JSON says.
+The pull script runs the CLI export first, then reads the current folder assignments directly from postgres and merges them into each JSON file before writing to disk:
 
 ```bash
-# after n8n import via CLI
-psql "$N8N_DB_URL" <<SQL
-  UPDATE n8n_workflow_folder wf
-  SET folder_id = m.folder_id
-  FROM workflow_folder_map m
-  WHERE wf.workflow_id = m.workflow_id;
-SQL
+# read assignments from postgres
+psql "$N8N_DB_URL" -t -A -F',' \
+  -c "SELECT wf.workflow_id, f.name, f.id
+      FROM n8n_workflow_folder wf
+      JOIN folder f ON f.id = wf.folder_id" \
+| while IFS=',' read -r wf_id folder_name folder_id; do
+    file="workflows/${wf_id}.json"
+    tmp=$(jq --arg fn "$folder_name" --arg fi "$folder_id" \
+      '.parentFolder = $fn | .parentFolderId = $fi' "$file")
+    echo "$tmp" > "$file"
+  done
 ```
 
-The `package.json` scripts use bash explicitly rather than sh — the export script uses process substitution (`<(...)`) which sh on macOS doesn't support.
+The script also generates a `manifest.json` that tracks which workflow IDs are archived — restore uses this to skip them rather than reimporting workflows that were intentionally retired.
+
+The `--commit` flag stages and commits the result automatically. `--force` overwrites local changes without prompting.
+
+## Push: Wipe, Import, Reassign
+
+Restore is three steps:
+
+**1. Wipe.** Delete all existing workflows and folders via the REST API. This avoids ID conflicts and duplicate names on import.
+
+**2. Import.** Run the n8n CLI import against the JSON files. This gets all workflows back into the database with their content and settings intact — but again, no folder assignments.
+
+**3. Reassign.** Read `parentFolderId` from each imported JSON and run a postgres `UPDATE` to put everything back in the right folder:
+
+```bash
+for file in workflows/*.json; do
+  wf_id=$(jq -r '.id' "$file")
+  folder_id=$(jq -r '.parentFolderId // empty' "$file")
+  [ -z "$folder_id" ] && continue
+
+  psql "$N8N_DB_URL" -c \
+    "INSERT INTO n8n_workflow_folder (workflow_id, folder_id)
+     VALUES ('$wf_id', '$folder_id')
+     ON CONFLICT (workflow_id) DO UPDATE SET folder_id = EXCLUDED.folder_id"
+done
+```
+
+Without step 3, the import looks complete but every workflow is unfiled.
+
+## One macOS Gotcha
+
+The scripts use bash explicitly, not sh. The pull script uses process substitution (`<(...)`) for feeding psql output into the loop — sh on macOS doesn't support it. The `package.json` entries specify bash directly:
+
+```json
+"pull-workflows": "bash sh_files/pull_n8n_workflows.sh",
+"push-workflows": "bash sh_files/push_n8n_workflows.sh"
+```
 
 ## The Tradeoff
 
-Reading from and writing to n8n's internal tables is a coupling risk. If n8n changes its schema, these queries break. In practice that's acceptable here — n8n is self-hosted, schema changes across minor versions have been rare, and the alternative (broken folder assignment in both the UI and backups) is worse.
-
-The REST API handles what it can. Postgres handles what it can't.
+This reads from and writes to n8n's internal postgres tables directly. If n8n changes the `n8n_workflow_folder` schema across a version upgrade, the scripts break. In practice that's been stable across minor versions — and the alternative is losing folder structure entirely on every backup and restore, which isn't acceptable for a setup with 50+ workflows organized across a dozen folders.

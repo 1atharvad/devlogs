@@ -121,6 +121,7 @@ Go through this before marking a post ready.
 - [ ] **The failed attempt is in there** — what you tried first and why it didn't work (if applicable)
 - [ ] **Cross-references are linked** — any related post on the blog is linked where it's relevant, not just at the end
 - [ ] **Frontmatter is complete** — title, description, pubDate, heroImage, tags all filled in
+- [ ] **No duplicate tags** — if a tag is set as `primaryTag`, it should not also appear in the `tags` list
 
 ### Articles
 

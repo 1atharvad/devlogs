@@ -3,7 +3,7 @@ title: "Managing Server Env Vars Without Touching the Server"
 description: "A UI to add, reveal, and delete env vars — with a deploy button that syncs everything to GitHub Actions secrets so the next deployment picks them up automatically."
 pubDate: "Jun 02 2026"
 primaryTag: "python"
-tags: ["Python", "GitHub", "Docker", "Infrastructure"]
+tags: ["GitHub", "Docker", "Infrastructure"]
 ---
 
 The usual way to update a server's environment variables is to SSH in, edit `.env`, and restart the relevant containers. It works but it's manual, error-prone, and leaves no audit trail. Every change is someone typing on a server.
