@@ -2,12 +2,14 @@ name: Sync RAG on Deploy
 
 on:
   deployment_status:
+  workflow_dispatch:
 
 jobs:
   sync:
     if: |
-      github.event.deployment_status.state == 'success' &&
-      github.event.deployment_status.environment == 'Production'
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+      github.event.deployment_status.environment == 'Production')
     environment: production
     runs-on: ubuntu-latest
     env:
