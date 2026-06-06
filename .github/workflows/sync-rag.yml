@@ -12,9 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RAG_SYNC_URL: ${{ secrets.RAG_SYNC_URL }}
+      SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
     steps:
       - name: Sync RAG content
         run: |
           curl -X POST "$RAG_SYNC_URL" \
-            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            -H "Authorization: Bearer $SYNC_SECRET" \
             -f
