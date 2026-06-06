@@ -38,7 +38,7 @@ const isDevlog = category === 'devlogs';
 const allTags = [post.data.primaryTag, ...(post.data.tags || [])].filter(Boolean) as string[];
 ---
 
-<BaseLayout title={post.data.title} description={post.data.description}>
+<BaseLayout title={post.data.title} description={post.data.description} image={post.data.heroImage}>
 	<Header client:load />
 	<main class="max-w-full mx-5 my-10">
 		<div class="max-w-[1024px] mx-auto sm:p-4">
