@@ -2,14 +2,15 @@
 title: "Automating Blog Ingestion into the Vector Store"
 description: "How I built an n8n pipeline that reads my RSS feed, checks what's new or updated, and syncs only the changed content into Supabase for the RAG agent to use."
 pubDate: "May 13 2026"
+updatedDate: "Jun 06 2026"
 primaryTag: "n8n"
 tags: ["RAG", "Supabase", "Automation", "Postgres"]
 ---
 
 import { Image } from 'astro:assets';
-import pipelineImg from '../../assets/data-ingestion.jpg';
+import pipelineImg from '../../assets/data-ingestion.png';
 
-The AI agent I built for this blog answers questions by searching a Supabase vector store. But that store doesn't fill itself — something has to read the blog posts, chunk them, embed them, and push them in. I was doing this manually. This pipeline automates it.
+The [AI agent I built for this blog](/devlogs/building-ai-agent-for-devlogs) answers questions by searching a Supabase vector store. But that store doesn't fill itself — something has to read the blog posts, chunk them, embed them, and push them in. I was doing this manually. This pipeline automates it.
 
 ## The Problem with Manual Ingestion
 
@@ -17,7 +18,7 @@ Every time I publish or update a post, I'd have to manually trigger the embeddin
 
 ## How the Pipeline Works
 
-The entry point is a **Manual Trigger** for now — I run it after publishing. The first step is an **RSS Feed Read** node that pulls from the blog's RSS feed, using a custom `apiUrl` field to get each post's full content URL alongside the standard feed metadata.
+There are two entry points: a **Manual Trigger** for on-demand runs, and an **RSS Trigger** configured to poll at midnight each day — so new or updated posts get picked up automatically overnight without any manual step. The first thing either path does is an **RSS Feed Read** node that pulls from the blog's RSS feed, using a custom `apiUrl` field to get each post's full content URL alongside the standard feed metadata.
 
 From there, each RSS item fans out in two directions in parallel:
 
@@ -35,7 +36,7 @@ This is the part that makes it efficient. An **If** node branches on whether the
 
 **If it doesn't exist** — new post, go straight to embedding and insertion.
 
-**If it does exist** — run a second Postgres query to get the `last_modified` timestamp from the stored metadata. Then a **Filter** node checks whether that timestamp matches today's date. If the post hasn't been touched today, it gets skipped entirely. If it has been updated, the old chunks are deleted first, then the post is re-embedded and re-inserted clean.
+**If it does exist** — run a second Postgres query to get the `last_modified` timestamp from the stored metadata. Then a **Filter** node checks whether that timestamp matches today's date. If the post hasn't been touched today, it gets skipped entirely. If it has been updated, the old chunks are deleted first, then the post is re-embedded and re-inserted clean. The assumption here is that you run the sync on the same day you publish or edit — which holds for a manual trigger, and would hold for a deploy-triggered run too.
 
 That delete-before-reinsert step is important. Without it, updating a post would stack duplicate chunks in the vector store — the agent would start pulling stale content alongside the new version.
 
@@ -53,4 +54,8 @@ The metadata on each chunk is what makes the update logic possible — querying 
 
 ## What's Next
 
-Right now this is manually triggered. The obvious next step is connecting it to a webhook or a scheduled trigger that fires on publish — so new posts get indexed automatically without me thinking about it. The logic is already smart enough to handle it; it just needs a better entry point.
+The midnight poll covers most cases — by the time the next day rolls around, any post published the day before is indexed. The gap is same-day freshness: if you publish and someone asks about it within hours, the vector store won't have it yet.
+
+The tighter solution is a deploy-triggered sync. Vercel webhooks are the natural choice, but they're a paid feature. The free alternative is GitHub Actions — Vercel writes `deployment_status` events to GitHub on every deploy, so a workflow can listen for production success and call the sync endpoint immediately after a deploy lands, no paid plan needed.
+
+This pipeline was also the starting point for the full rewrite: once I moved from n8n to a [Django-based RAG package](/devlogs/blog-rag-django-app), the same logic — RSS read, existence check, delta sync — moved into a management command running in the same app as the rest of the backend.
