@@ -11,9 +11,15 @@ SyncView   — called by GitHub Actions on deployment_status success.
 """
 
 import hmac
+import io
+import queue
 import re
 import threading
 import uuid
+
+from django.http import StreamingHttpResponse
+
+_sync_jobs: dict[str, queue.Queue] = {}
 
 from langchain_core.messages import HumanMessage, ToolMessage
 from rest_framework.response import Response
@@ -126,38 +132,73 @@ class SearchView(APIView):
 
 class SyncView(APIView):
     """
-    POST /sync/ — triggers a content sync from RSS.
+    POST /sync/         — start a background sync, returns {"job_id": "..."}
+    GET  /sync/?job_id= — SSE stream of that job's log lines until done
 
-    Called by the GitHub Actions workflow on deployment_status success.
-    Authenticates via a Bearer token in the Authorization header.
-
-    Set SYNC_SECRET in BLOG_RAG settings to a long random string,
-    and add the same value as RAG_SYNC_SECRET in GitHub Actions secrets.
-
-    Response:
-        202 {"status": "sync started"}   — background thread launched.
-        401 {"detail": "unauthorized"}   — missing or wrong token.
-        503 {"detail": "RSS_URL not configured"}
+    Auth: Bearer token in Authorization header (SYNC_SECRET setting).
     """
 
-    def post(self, request):
+    def _authenticate(self, request):
         secret = rag_setting("SYNC_SECRET")
-        rss_url = rag_setting("RSS_URL")
-
         if not secret:
             return Response({"detail": "unauthorized"}, status=401)
-
-        auth = request.headers.get("Authorization", "")
-        token = auth.removeprefix("Bearer ").strip()
+        token = request.headers.get("Authorization", "").removeprefix("Bearer ").strip()
         if not hmac.compare_digest(token, secret):
             return Response({"detail": "unauthorized"}, status=401)
+        return None
 
+    def post(self, request):
+        from django.core.management import call_command
+
+        err = self._authenticate(request)
+        if err:
+            return err
+
+        rss_url = rag_setting("RSS_URL")
         if not rss_url:
             return Response({"detail": "RSS_URL not configured"}, status=503)
 
+        job_id = str(uuid.uuid4())
+        log_queue: queue.Queue = queue.Queue()
+        _sync_jobs[job_id] = log_queue
+
+        class _Writer(io.StringIO):
+            def write(self, s):
+                if s.strip():
+                    log_queue.put(s.rstrip())
+                return len(s)
+
         def _run():
-            from django.core.management import call_command
-            call_command("sync_from_rss", rss_url)
+            call_command("sync_from_rss", rss_url, stdout=_Writer())
+            log_queue.put(None)  # sentinel — job done
 
         threading.Thread(target=_run, daemon=True).start()
-        return Response({"status": "sync started"}, status=202)
+        return Response({"status": "sync started", "job_id": job_id}, status=202)
+
+    def get(self, request):
+        err = self._authenticate(request)
+        if err:
+            return err
+
+        job_id = request.query_params.get("job_id")
+        if not job_id or job_id not in _sync_jobs:
+            return Response({"detail": "job not found"}, status=404)
+
+        log_queue = _sync_jobs[job_id]
+
+        def _stream():
+            try:
+                while True:
+                    try:
+                        line = log_queue.get(timeout=30)
+                    except queue.Empty:
+                        yield ": keepalive\n\n"
+                        continue
+                    if line is None:
+                        yield "data: [done]\n\n"
+                        break
+                    yield f"data: {line}\n\n"
+            finally:
+                _sync_jobs.pop(job_id, None)
+
+        return StreamingHttpResponse(_stream(), content_type="text/event-stream")

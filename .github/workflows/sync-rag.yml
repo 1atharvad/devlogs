@@ -16,8 +16,20 @@ jobs:
       RAG_SYNC_URL: ${{ secrets.RAG_SYNC_URL }}
       SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
     steps:
-      - name: Sync RAG content
+      - name: Start sync
+        id: start
         run: |
-          curl -X POST "$RAG_SYNC_URL" \
-            -H "Authorization: Bearer $SYNC_SECRET" \
-            -f
+          RESPONSE=$(curl -s -X POST "$RAG_SYNC_URL" \
+            -H "Authorization: Bearer $SYNC_SECRET")
+          echo "$RESPONSE"
+          JOB_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin)['job_id'])")
+          echo "job_id=$JOB_ID" >> $GITHUB_OUTPUT
+
+      - name: Stream logs
+        run: |
+          curl -s -N "$RAG_SYNC_URL?job_id=${{ steps.start.outputs.job_id }}" \
+            -H "Authorization: Bearer $SYNC_SECRET" | \
+          while IFS= read -r line; do
+            echo "${line#data: }"
+            [[ "$line" == "data: [done]" ]] && break
+          done
