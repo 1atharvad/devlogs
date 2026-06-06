@@ -34,17 +34,20 @@ Ask yourself: *Is there a claim in here that I'm making?* If yes, it's an articl
 ---
 
 ### Devlogs
-Short-form. Document a specific thing you built or figured out — with enough context that someone else could understand it or learn from it.
+Two valid forms:
+
+**Focused** — one specific decision, mechanism, or gotcha. Something that would have saved you time if you'd read it first. 300–700 words.
+
+**Build log** — documents a full feature or system that was built in a session. Covers what each part does, the key decisions, and why. Useful when the work is too interconnected to split cleanly, or when the full picture matters. 600–1200 words. Still needs a clear structure — not a changelog, not a bullet list of commits.
 
 Good fit for:
 - A pipeline or workflow you built (with the "why" included)
 - A component or feature that had an interesting implementation decision
 - A bug that taught you something
 - A tool setup that took more thinking than it should have
+- A full system built in one session where the parts only make sense together
 
 Ask yourself: *Would this have saved me time if I'd read it before doing it?* If yes, it's a devlog.
-
-**Length:** 300–700 words. One focused thing. Not a full project dump.
 
 ---
 
@@ -122,6 +125,7 @@ Go through this before marking a post ready.
 - [ ] **Cross-references are linked** — any related post on the blog is linked where it's relevant, not just at the end
 - [ ] **Frontmatter is complete** — title, description, pubDate, heroImage, tags all filled in
 - [ ] **No duplicate tags** — if a tag is set as `primaryTag`, it should not also appear in the `tags` list
+- [ ] **Claims are verified** — any assertion about a tool, platform, or feature that isn't from direct personal experience must be checked against a web source before publishing. Don't add claims based on assumption.
 
 ### Articles
 
@@ -131,12 +135,19 @@ Go through this before marking a post ready.
 - [ ] **Ending lands** — the last paragraph is a conclusion, not a disclaimer or apology
 - [ ] **800–2000 words**
 
-### Devlogs
+### Devlogs (focused)
 
-- [ ] **One focused thing** — not a full project dump, one decision or one mechanism
+- [ ] **One focused thing** — one decision or one mechanism, not a project dump
 - [ ] **The core mechanism is shown** — the specific code, config, or workflow step that makes it work
 - [ ] **Edge case or gotcha is named** — the thing that would have saved you time if you'd known it earlier
 - [ ] **300–700 words**
+
+### Devlogs (build log)
+
+- [ ] **Clear structure** — sections per major component, not a flat list of what was done
+- [ ] **Each section has a "why"** — not just what was built but the decision behind it
+- [ ] **Not a changelog** — prose, not bullets; decisions, not commit messages
+- [ ] **600–1200 words**
 
 ---
 
