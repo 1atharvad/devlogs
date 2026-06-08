@@ -21,6 +21,16 @@ export const TagFilter = ({ tags }: Props) => {
         (card as HTMLElement).style.display = 'none';
       }
     });
+
+    const visibleMonthIds = new Set<string>();
+    document.querySelectorAll('.js-month-group').forEach((group) => {
+      const groupCards = group.querySelectorAll<HTMLElement>('.js-post-card');
+      const hasVisible = Array.from(groupCards).some(c => c.style.display !== 'none');
+      (group as HTMLElement).style.display = hasVisible ? '' : 'none';
+      if (hasVisible) visibleMonthIds.add(group.id);
+    });
+
+    window.dispatchEvent(new CustomEvent('tagfilter', { detail: { visibleMonthIds } }));
   };
 
   return (
