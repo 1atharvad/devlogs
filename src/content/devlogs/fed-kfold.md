@@ -1,7 +1,7 @@
 ---
 title: "Facial Expression Detection: K-Fold Cross-Validation"
 description: "Implementing k-fold cross-validation for the FER-2023 training pipeline — custom fold directory generation, deficit filling for imbalanced classes, and fixed validation across folds."
-pubDate: "Aug 15 2024"
+pubDate: "Aug 10 2024"
 primaryTag: "AI"
 tags: ["Python", "TensorFlow", "Keras", "Deep Learning"]
 ---
@@ -70,5 +70,9 @@ def get_fold_sizes(self):
 ```
 
 The fold window boundaries are calculated from this max — `fold_size = get_fold_sizes() / k_fold` — so the split adapts automatically if the dataset changes.
+
+## Results
+
+Model 0.1.3, trained with 5 folds, reached 58.66% validation accuracy — lower than the 64.66% achieved by single-pass runs. Each fold trains on a fraction of the full dataset rather than all of it, so the per-fold model sees less data. The value of k-fold here is a more reliable accuracy estimate across different data splits, not a higher peak accuracy.
 
 The [prediction system](/devlogs/fed-prediction-system) built on top of these trained models is covered next.

@@ -1,7 +1,7 @@
 ---
 title: "Facial Expression Detection: Image, Video, and Webcam Prediction"
 description: "Running facial expression inference across three input modes — static images, video files, and live webcam — using OpenCV for face detection and the full preprocessing pipeline from bounding box to model input."
-pubDate: "Aug 20 2024"
+pubDate: "Aug 15 2024"
 primaryTag: "AI"
 tags: ["Python", "OpenCV", "TensorFlow", "Keras"]
 ---
@@ -37,21 +37,6 @@ The face region is cropped directly from the grayscale image — not from the co
 
 After cropping, the region is resized to `capture_size` × `capture_size` (96×96). The final line — `roi[np.newaxis, :, :, np.newaxis]` — reshapes the 2D array from `(96, 96)` to `(1, 96, 96, 1)`, adding a batch dimension and a channel dimension. That's the shape Keras expects: batch size 1, height, width, channels 1. Without this expansion the model call fails with a shape mismatch.
 
-## Rendering Output
-
-The prediction label and bounding box are drawn back onto the original color frame, not the grayscale:
-
-```python
-def draw_rect(self, prediction, img_frame, co_ordinates):
-    x, y, w, h = co_ordinates
-    text_size, _ = cv2.getTextSize(prediction, self.font, 1, 2)
-    cv2.rectangle(img_frame, (x, y - 30 - text_size[1]), (x + text_size[0], y - 10), (180, 184, 176), -1)
-    cv2.putText(img_frame, prediction, (x, y - 20), self.font, 1, (69, 74, 24), 2)
-    cv2.rectangle(img_frame, (x, y), (x + w, y + h), (106, 118, 252), 4)
-```
-
-The label background box is sized dynamically using `cv2.getTextSize` — it fits the width of the predicted class name rather than using a fixed rectangle. This matters because the seven class names have different lengths ("Disgust" vs "Fear"). The background is positioned above the face box, the text is drawn over it, and the face box itself is drawn in a blue-purple with thickness 4.
-
 ## Three Prediction Modes
 
 All modes share the same detection and preprocessing loop — the only structural difference is the input source:
@@ -67,6 +52,21 @@ python predict_expression webcam
 **Video mode** opens the file with `VideoCapture(video_file)` and loops until `video.read()` returns no more frames. `waitKey(1)` gives a 1ms pause per iteration — enough for the display to update without blocking the loop.
 
 **Webcam mode** is almost identical to video mode — `VideoCapture(0)` instead of a file path, and the loop runs indefinitely until the user exits. Multiple faces in the same frame each get their own bounding box and label independently.
+
+## Rendering Output
+
+Detection and inference run on the grayscale image, but the output is drawn back onto the original color frame — so the user sees the bounding box overlaid on the actual face as it appears, not a grayscale copy:
+
+```python
+def draw_rect(self, prediction, img_frame, co_ordinates):
+    x, y, w, h = co_ordinates
+    text_size, _ = cv2.getTextSize(prediction, self.font, 1, 2)
+    cv2.rectangle(img_frame, (x, y - 30 - text_size[1]), (x + text_size[0], y - 10), (180, 184, 176), -1)
+    cv2.putText(img_frame, prediction, (x, y - 20), self.font, 1, (69, 74, 24), 2)
+    cv2.rectangle(img_frame, (x, y), (x + w, y + h), (106, 118, 252), 4)
+```
+
+The label background is sized dynamically using `cv2.getTextSize` — it fits the width of the predicted class name rather than a fixed rectangle. This matters because the seven class names have different lengths ("Disgust" vs "Fear"). The background is drawn above the face box, the text is rendered over it, and the bounding box is drawn in blue-purple with thickness 4.
 
 ## Model Loading
 
@@ -95,6 +95,6 @@ def predict_emotion(self, img):
     return self.emotions_list[np.argmax(predict_values)]
 ```
 
-The softmax output is a distribution over all 7 classes. `argmax` picks the highest-confidence one and returns the corresponding string from `emotions_list`. The version itself is hardcoded — the best-performing version is identified by comparing train and validation accuracy across runs, looking for close convergence and overall high accuracy, then written directly into the prediction code.
+The softmax output is a distribution over all 7 classes. `argmax` picks the highest-confidence one and returns the corresponding string from `emotions_list`. The version is hardcoded to `0.1.1` — across five training runs it tied for the best validation accuracy (64.66%) and had the lowest loss, so it was written directly into the prediction code.
 
-Wrapping this in a deployable web interface — Streamlit with embedded Gradio components on HuggingFace Spaces — is covered in the [next entry](/devlogs/fed-api-gradio).
+Wrapping this in a deployable web interface — Gradio mounted on FastAPI and hosted on HuggingFace Spaces — is covered in the [next entry](/devlogs/fed-api-gradio).

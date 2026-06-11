@@ -1,6 +1,6 @@
 ---
 title: "Facial Expression Detection: CNN Architecture and Training Pipeline"
-description: "Designing a 5-block convolutional network to classify 7 facial expressions, training on FER-2023 with data augmentation and k-fold cross-validation, and managing versioned model artifacts."
+description: "Designing a 5-block convolutional network to classify 7 facial expressions, training on FER-2023 with ReduceLROnPlateau, and managing versioned model artifacts across runs."
 pubDate: "Aug 04 2024"
 primaryTag: "AI"
 tags: ["Python", "TensorFlow", "Keras", "Deep Learning"]
@@ -68,6 +68,8 @@ train_set = ImageDataGenerator(
 ).flow_from_directory(...)
 ```
 
+The augmentation choices are deliberate. Horizontal flip mirrors the face — a valid new data point, since expressions are symmetric and a mirrored face is still a face someone could make. Vertical flip was skipped: an upside-down face isn't a realistic input, so adding it would introduce noise rather than useful variation. Rotation is capped at 10° to simulate natural head tilts without distorting expressions — kept in the 0–15° range where the expression still reads correctly. The same logic applies to the small shift and zoom values: enough variation to help generalization, not so much that the face becomes unrecognisable.
+
 Augmentation is applied only to the training set; validation loads with rescaling only. Images are loaded as grayscale at 96×96. A fixed random seed via `utils.set_random_seed(self.seed)` makes runs reproducible.
 
 ## Training
@@ -79,3 +81,19 @@ Early stopping was tried and rejected. The problem was that it triggered before 
 Training runs for 60 epochs at batch size 100. After each run, the weights save to `model.h5` and accuracy/loss curves are saved as a PNG alongside the model.
 
 The k-fold training setup — which runs this pipeline across multiple data splits for more reliable accuracy estimates — is covered in the [next entry](/devlogs/fed-kfold).
+
+## Results
+
+Across five model versions, single-pass runs converged at 64.66% validation accuracy:
+
+| Model   | Accuracy | Loss   | k-fold |
+|---------|----------|--------|--------|
+| 0.1.1   | 64.66%   | 1.0211 | 1      |
+| 0.1.2   | 64.66%   | 1.0211 | 1      |
+| 0.1.3   | 58.66%   | 1.2169 | 5      |
+| 0.1.4   | 62.99%   | 1.0606 | 1      |
+| 0.1.5   | 64.66%   | 1.0245 | 1      |
+
+0.1.3 is the k-fold run — five folds, each training on a subset of the full dataset rather than all of it. The lower accuracy reflects that: less training data per fold means the model doesn't reach the same level of fit. The k-fold value is in reliability of the accuracy estimate across splits, not in peak accuracy.
+
+0.1.1 and 0.1.2 produced identical metrics. 0.1.1 was selected for deployment — same accuracy, lower loss than 0.1.5, and it was the first version to reach that ceiling. For a lightweight real-time system on HuggingFace Spaces, 64.66% on a 7-class problem with no hardware constraints was the target, and it held.
